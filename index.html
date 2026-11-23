@@ -1,0 +1,1822 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control Financiero Personal - Dashboard y Calendario</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans">
+
+  <!-- BARRA DE NAVEGACIÓN SUPERIOR -->
+  <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
+      <div class="flex items-center space-x-3">
+        <span class="text-2xl">💰</span>
+        <div>
+          <h1 class="font-bold text-lg text-white">Finanzas & Tranquilidad</h1>
+          <p class="text-xs text-slate-400">Control inteligente con Nómina Detallada</p>
+        </div>
+      </div>
+      
+      <!-- Selector de Fecha -->
+      <div class="flex items-center space-x-2 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">
+        <span class="text-xs text-slate-400">Fecha de Consulta:</span>
+        <input type="date" id="currentDateInput" value="2026-10-16" class="bg-slate-900 text-emerald-400 font-semibold px-2 py-1 rounded text-sm border border-slate-700">
+        <button onclick="updateSystemDate()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-2.5 py-1.5 rounded font-medium transition">Actualizar</button>
+        <button onclick="updateSystemDate(true)" class="bg-slate-700 hover:bg-slate-600 text-white text-xs px-2.5 py-1.5 rounded font-medium transition">Hoy</button>
+      </div>
+
+      <nav class="flex space-x-2">
+        <button onclick="switchTab('dashboard')" id="tab-dashboard" class="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 text-white transition">📊 Dashboard</button>
+        <button onclick="switchTab('calendar')" id="tab-calendar" class="px-4 py-2 rounded-lg text-sm font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition">📅 Calendario</button>
+        <button onclick="switchTab('cards')" id="tab-cards" class="px-4 py-2 rounded-lg text-sm font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition">💳 Tarjetas</button>
+        <button onclick="switchTab('debts')" id="tab-debts" class="px-4 py-2 rounded-lg text-sm font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition">📉 Deudas</button>
+        <button onclick="switchTab('loans')" id="tab-loans" class="px-4 py-2 rounded-lg text-sm font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition">🏦 Préstamos</button>
+        <button onclick="switchTab('settings')" id="tab-settings" class="px-4 py-2 rounded-lg text-sm font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition">⚙️ Config</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full space-y-6">
+
+    <!-- VISTA 1: DASHBOARD -->
+    <section id="view-dashboard" class="space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg">
+          <div class="text-slate-400 text-xs font-medium uppercase">Saldo en Débito (Hoy)</div>
+          <div id="metric-debit-balance" class="text-2xl font-bold text-white mt-2">$0.00</div>
+          <div class="text-xs text-emerald-400 mt-1">Neta real en cuenta</div>
+        </div>
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg">
+          <div class="text-slate-400 text-xs font-medium uppercase">Presupuesto Diario Seguro</div>
+          <div id="metric-daily-budget" class="text-2xl font-bold text-emerald-400 mt-2">$0.00 / día</div>
+          <div class="text-xs text-slate-400 mt-1" id="metric-days-left">Faltan 0 días para catorcena</div>
+        </div>
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg">
+          <div class="text-slate-400 text-xs font-medium uppercase">Compromisos Próximos</div>
+          <div id="metric-commitments" class="text-2xl font-bold text-rose-400 mt-2">$0.00</div>
+          <div class="text-xs text-slate-400 mt-1">Tarjetas + gastos fijos + préstamos</div>
+        </div>
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg">
+          <div class="text-slate-400 text-xs font-medium uppercase">Falta Apartar de Ahorro</div>
+          <div id="metric-savings" class="text-2xl font-bold text-sky-400 mt-2">$0.00</div>
+          <div class="text-xs text-slate-400 mt-1" id="metric-savings-sub">Meta quincenal</div>
+        </div>
+      </div>
+
+      <div id="backup-banner" class="hidden p-4 rounded-xl border bg-amber-950/40 border-amber-800/60 text-amber-300 text-sm flex items-center justify-between gap-3">
+        <span id="backup-banner-text"></span>
+        <button onclick="exportBackup()" class="bg-amber-600 hover:bg-amber-500 text-white text-xs px-3 py-1.5 rounded-lg whitespace-nowrap">Respaldar ahora</button>
+      </div>
+
+      <div id="health-banner" class="p-4 rounded-xl border bg-emerald-950/40 border-emerald-800/60 text-emerald-300 font-medium text-sm flex items-center justify-between">
+        <span id="health-banner-text">✅ TRANQUILIDAD TOTAL: Tus compromisos están cubiertos.</span>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4">
+          <h3 class="font-semibold text-white text-md flex items-center gap-2"><span>⚡</span> Acciones Rápidas</h3>
+          <div class="space-y-3">
+            <button onclick="openPurchaseModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm py-2.5 px-4 rounded-xl border border-slate-700 flex justify-between"><span>+ Compra / MSI</span><span class="text-emerald-400">💳</span></button>
+            <button onclick="openTransactionModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm py-2.5 px-4 rounded-xl border border-slate-700 flex justify-between"><span>+ Gasto / Ahorro</span><span class="text-sky-400">🏦</span></button>
+            <button onclick="openPaymentModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm py-2.5 px-4 rounded-xl border border-slate-700 flex justify-between"><span>💳 Abono a Tarjeta</span><span class="text-rose-400">💸</span></button>
+          </div>
+          <div class="pt-4 border-t border-slate-800">
+            <h4 class="text-xs font-medium text-slate-400 uppercase mb-2">Crédito Disponible</h4>
+            <div id="dashboard-cards-summary" class="space-y-2"></div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-2 bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4">
+          <div class="flex items-center justify-between gap-3 flex-wrap">
+            <h3 class="font-semibold text-white text-md">📈 Proyección de Saldo en Cuenta</h3>
+            <label class="text-xs text-slate-400 flex items-center gap-2 cursor-pointer"><input type="checkbox" id="rb-full" onchange="refreshDashboard()"> Ver hasta quedar libre de deudas</label>
+          </div>
+          <div id="outlook-summary" class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs"></div>
+          <p class="text-[11px] text-slate-500">Solo cuenta lo registrado (nómina, préstamos, tarjetas y movimientos futuros). No incluye tu gasto diario ni compras nuevas.</p>
+          <div class="overflow-x-auto max-h-80 overflow-y-auto">
+            <table class="w-full text-left text-sm text-slate-300">
+              <thead class="bg-slate-800/80 text-xs uppercase text-slate-400 sticky top-0">
+                <tr><th class="p-3">Fecha</th><th class="p-3">Concepto</th><th class="p-3">Tipo</th><th class="p-3 text-right">Monto</th><th class="p-3 text-right">Saldo</th><th class="p-3 text-center">Estado</th></tr>
+              </thead>
+              <tbody id="running-balance-tbody" class="divide-y divide-slate-800"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VISTA 2: CALENDARIO -->
+    <section id="view-calendar" class="hidden space-y-6">
+      <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-6">
+        <div class="flex justify-between items-center">
+          <h2 id="calendarMonthTitle" class="text-xl font-bold text-white capitalize">Octubre 2026</h2>
+          <div class="flex space-x-1">
+            <button onclick="changeMonth(-1)" class="bg-slate-800 px-3 py-1.5 rounded-lg text-sm">◀ Anterior</button>
+            <button onclick="goToCurrentMonth()" class="bg-slate-800 px-3 py-1.5 rounded-lg text-sm">Hoy</button>
+            <button onclick="changeMonth(1)" class="bg-slate-800 px-3 py-1.5 rounded-lg text-sm">Siguiente ▶</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-7 gap-2 text-center text-xs font-semibold text-slate-400 uppercase">
+          <div class="py-2">Lun</div><div class="py-2">Mar</div><div class="py-2">Mié</div><div class="py-2">Jue</div><div class="py-2">Vie</div><div class="py-2">Sáb</div><div class="py-2">Dom</div>
+        </div>
+        <div id="calendarGrid" class="grid grid-cols-7 gap-2"></div>
+      </div>
+    </section>
+
+    <!-- VISTA 3: TARJETAS -->
+    <section id="view-cards" class="hidden space-y-6">
+      <div class="flex justify-between items-center">
+        <h2 class="text-xl font-bold text-white">Tarjetas y Compras</h2>
+        <button onclick="openCardModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm px-4 py-2 rounded-xl">+ Nueva Tarjeta</button>
+      </div>
+      <div id="cards-container" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+
+      <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4">
+        <div>
+          <h3 class="font-semibold text-white text-md">📄 Estados de cuenta pendientes</h3>
+          <p class="text-xs text-slate-400 mt-1">De qué se compone cada pago que ves en el calendario y en la proyección: compras a meses, suscripciones e intereses. Cada cargo tiene botones para editar o borrar su origen.</p>
+        </div>
+        <div id="statements-container" class="space-y-5"></div>
+      </div>
+      <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4 mt-6">
+        <h3 class="font-semibold text-white text-md">🛒 Historial de Compras y MSI</h3>
+        <table class="w-full text-left text-sm text-slate-300">
+          <thead class="bg-slate-800 text-xs uppercase text-slate-400">
+            <tr><th class="p-3">Descripción</th><th class="p-3">Fecha</th><th class="p-3 text-right">Monto</th><th class="p-3 text-center">Plazo</th><th class="p-3 text-center">Acciones</th></tr>
+          </thead>
+          <tbody id="purchases-table-body" class="divide-y divide-slate-800"></tbody>
+        </table>
+      </div>
+
+      <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4">
+        <div class="flex justify-between items-start gap-3 flex-wrap">
+          <div>
+            <h3 class="font-semibold text-white text-md">🔁 Suscripciones y cargos fijos a tarjeta</h3>
+            <p class="text-xs text-slate-400 mt-1 max-w-2xl">Cobros mensuales que se cargan a una tarjeta (streaming, apps, seguros). Se agregan al estado de cuenta que les toque cada mes.</p>
+          </div>
+          <button onclick="openSubModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm px-4 py-2 rounded-xl">+ Nueva suscripción</button>
+        </div>
+        <table class="w-full text-left text-sm text-slate-300">
+          <thead class="bg-slate-800 text-xs uppercase text-slate-400">
+            <tr><th class="p-3">Descripción</th><th class="p-3">Cobro</th><th class="p-3 text-right">Monto</th><th class="p-3">Vigencia</th><th class="p-3 text-center">Acciones</th></tr>
+          </thead>
+          <tbody id="subs-tbody" class="divide-y divide-slate-800"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- VISTA 4: DEUDAS -->
+    <section id="view-debts" class="hidden space-y-6">
+      <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-6">
+        <h2 class="text-xl font-bold text-white">Simulador de Amortización</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div><label class="block text-xs text-slate-400 mb-1">Saldo Total ($)</label><input type="number" id="sim-balance" value="65000" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm"></div>
+          <div><label class="block text-xs text-slate-400 mb-1">Tasa Anual</label><input type="number" step="0.01" id="sim-rate" value="0.55" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm"></div>
+          <div><label class="block text-xs text-slate-400 mb-1">Abono Mensual ($)</label><input type="number" id="sim-payment" value="3500" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm"></div>
+        </div>
+        <button onclick="runDebtSimulationUI()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm px-5 py-2.5 rounded-xl">Calcular Proyección</button>
+        <div id="sim-results" class="space-y-4 pt-4 border-t border-slate-800 hidden"></div>
+      </div>
+    </section>
+
+    <!-- VISTA 6: PRÉSTAMOS -->
+    <section id="view-loans" class="hidden space-y-6">
+      <div class="flex justify-between items-start gap-3 flex-wrap">
+        <div>
+          <h2 class="text-xl font-bold text-white">🏦 Préstamos</h2>
+          <p class="text-xs text-slate-400 mt-1 max-w-2xl">Las mensualidades con fecha igual o anterior a la fecha de consulta se consideran pagadas y se descuentan de tu débito; las futuras aparecen en el calendario y en tus compromisos. No registres además la mensualidad como gasto fijo, porque se contaría dos veces.</p>
+        </div>
+        <button onclick="openLoanModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm px-4 py-2 rounded-xl">+ Nuevo préstamo</button>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+          <div class="text-slate-400 text-xs font-medium uppercase">Saldo pendiente total</div>
+          <div id="loans-total-balance" class="text-2xl font-bold text-rose-400 mt-2">$0.00</div>
+          <div class="text-xs text-slate-400 mt-1" id="loans-interest-total">Intereses por pagar: $0.00</div>
+        </div>
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+          <div class="text-slate-400 text-xs font-medium uppercase">Mensualidades al mes</div>
+          <div id="loans-monthly-total" class="text-2xl font-bold text-white mt-2">$0.00</div>
+          <div class="text-xs text-slate-400 mt-1" id="loans-count">0 préstamos activos</div>
+        </div>
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+          <div class="text-slate-400 text-xs font-medium uppercase">Próximo pago</div>
+          <div id="loans-next-payment" class="text-2xl font-bold text-emerald-400 mt-2">—</div>
+          <div class="text-xs text-slate-400 mt-1" id="loans-next-sub"></div>
+        </div>
+      </div>
+      <div id="loans-container" class="space-y-4"></div>
+    </section>
+
+    <!-- VISTA 5: CONFIGURACIÓN -->
+    <section id="view-settings" class="hidden space-y-6">
+
+      <!-- NÓMINA -->
+      <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-5">
+        <div>
+          <h2 class="text-xl font-bold text-white">💼 Nómina</h2>
+          <p class="text-xs text-slate-400 mt-1">Tu presupuesto y tu ahorro se miden de nómina a nómina, contando cada 14 días desde la fecha de referencia.</p>
+        </div>
+        <div id="income-form" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div><label class="block text-xs text-slate-400 mb-1">Salario diario del recibo ($)</label><input type="number" step="0.01" id="inc-daily" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm"></div>
+          <div><label class="block text-xs text-slate-400 mb-1">Días pagados por catorcena</label><input type="number" step="0.5" id="inc-days" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm"></div>
+          <div><label class="block text-xs text-slate-400 mb-1">Fondo de ahorro (% del sueldo ordinario)</label><input type="number" step="0.01" id="inc-fund" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm"></div>
+          <div><label class="block text-xs text-slate-400 mb-1">ISR de una catorcena sin bono ($)</label><input type="number" step="0.01" id="inc-isr" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm"></div>
+          <div><label class="block text-xs text-slate-400 mb-1">IMSS por catorcena ($)</label><input type="number" step="0.01" id="inc-imss" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm"></div>
+          <div><label class="block text-xs text-slate-400 mb-1">ISR extra sobre el bono (%)</label><input type="number" step="0.01" id="inc-isrBonus" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm"></div>
+          <div class="flex items-end"><label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="inc-hasBonus" class="accent-emerald-500"> Recibo bono</label></div>
+          <div><label class="block text-xs text-slate-400 mb-1">Monto del bono a considerar ($)</label><input type="number" step="0.01" id="inc-bonus" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm"></div>
+          <div><label class="block text-xs text-slate-400 mb-1">¿Cuándo llega el bono?</label>
+            <select id="inc-pattern" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm">
+              <option value="monthly-first">Primera catorcena de cada mes (calendario de la empresa)</option>
+              <option value="alternate">Una catorcena sí, una no</option>
+              <option value="every">Todas las catorcenas</option>
+            </select></div>
+          <div class="md:col-span-2"><label class="block text-xs text-slate-400 mb-1">Fecha de un pago de referencia (un día de cobro real)</label><input type="date" id="inc-first" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm"></div>
+          <div id="inc-firstBonus-wrap" class="flex items-end"><label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="inc-firstBonus" class="accent-emerald-500"> Ese pago incluyó bono (solo modo "una sí, una no")</label></div>
+        </div>
+        <p class="text-[11px] text-slate-500">Datos tomados del recibo: sueldo ordinario = salario diario × días pagados. ISR e IMSS son los de una catorcena sin bono; "ISR extra sobre el bono" es lo que se lleva de impuesto cada peso adicional de bono. El fondo de ahorro se calcula solo sobre el sueldo ordinario.</p>
+        <div id="inc-preview" class="bg-slate-800/60 border border-slate-700 rounded-xl p-4 text-sm text-slate-300"></div>
+        <div class="flex items-center gap-3"><button onclick="saveIncomeConfig()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm px-5 py-2.5 rounded-xl">Guardar nómina</button><span id="inc-status" class="text-xs text-emerald-400"></span></div>
+      </div>
+
+      <!-- GASTOS FIJOS -->
+      <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-4">
+        <div class="flex justify-between items-center">
+          <div>
+            <h2 class="text-xl font-bold text-white">🏠 Gastos Fijos</h2>
+            <p class="text-xs text-slate-400 mt-1">Renta, internet, servicios... Se descuentan de tu saldo y aparecen en el calendario y la proyección.</p>
+          </div>
+          <button onclick="openExpenseModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm px-4 py-2 rounded-xl">+ Nuevo gasto fijo</button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-800 text-xs uppercase text-slate-400">
+              <tr><th class="p-3">Gasto</th><th class="p-3">Frecuencia</th><th class="p-3 text-right">Monto</th><th class="p-3 text-center">Acciones</th></tr>
+            </thead>
+            <tbody id="expenses-tbody" class="divide-y divide-slate-800"></tbody>
+          </table>
+        </div>
+        <div id="expenses-total" class="text-xs text-slate-400 text-right"></div>
+      </div>
+
+      <!-- CUENTA Y AHORRO -->
+      <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-5">
+        <div>
+          <h2 class="text-xl font-bold text-white">🏦 Cuenta y Ahorro</h2>
+          <p class="text-xs text-slate-400 mt-1">Tu saldo de hoy = saldo inicial + nóminas e ingresos − gastos, ahorros y abonos desde la fecha base.</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div><label class="block text-xs text-slate-400 mb-1">Saldo en débito en la fecha base ($)</label><input type="number" step="0.01" id="acc-balance" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm"></div>
+          <div><label class="block text-xs text-slate-400 mb-1">Fecha base</label><input type="date" id="acc-start" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm"></div>
+          <div><label class="block text-xs text-slate-400 mb-1">Meta de ahorro por nómina (%)</label><input type="number" step="0.5" id="set-savings" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm"></div>
+        </div>
+        <div class="flex items-center gap-3"><button onclick="saveAccountSettings()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm px-5 py-2.5 rounded-xl">Guardar cuenta y ahorro</button><span id="acc-status" class="text-xs text-emerald-400"></span></div>
+        <div class="pt-5 border-t border-slate-800 space-y-3">
+          <div>
+            <h3 class="font-semibold text-white">⚖️ Conciliar con mi saldo real</h3>
+            <p class="text-xs text-slate-400 mt-1">Si el saldo de la app no coincide con tu banco, escribe tu saldo real. Se registra un movimiento de ajuste con la diferencia, sin mover la fecha base ni perder historial.</p>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div><label class="block text-xs text-slate-400 mb-1">Mi saldo real a la fecha de consulta ($)</label><input type="number" step="0.01" id="adj-balance" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm"></div>
+            <div><button onclick="reconcileBalance()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm px-5 py-2.5 rounded-xl">Conciliar</button></div>
+            <div id="adj-hint" class="text-xs text-slate-400"></div>
+          </div>
+          <span id="adj-status" class="text-xs text-emerald-400"></span>
+        </div>
+      </div>
+
+      <!-- NÓMINA REAL RECIBIDA -->
+      <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-4">
+        <div>
+          <h2 class="text-xl font-bold text-white">🧾 Nómina real recibida</h2>
+          <p class="text-xs text-slate-400 mt-1">Registra lo que de verdad te depositaron. Ese monto reemplaza la proyección de ese día y no cambia aunque después modifiques ISR, bono o días pagados.</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+          <div><label class="block text-xs text-slate-400 mb-1">Fecha del depósito</label><input type="date" id="rp-date" onchange="updatePayrollHint()" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm"></div>
+          <div><label class="block text-xs text-slate-400 mb-1">Neto depositado ($)</label><input type="number" step="0.01" id="rp-amount" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm"></div>
+          <div><button onclick="registerActualPayroll()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm px-5 py-2.5 rounded-xl">Registrar pago</button></div>
+          <div id="rp-hint" class="text-xs text-slate-400"></div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-800 text-xs uppercase text-slate-400">
+              <tr><th class="p-3">Fecha</th><th class="p-3 text-right">Real</th><th class="p-3 text-right">Proyectado</th><th class="p-3 text-right">Diferencia</th><th class="p-3 text-center">Acciones</th></tr>
+            </thead>
+            <tbody id="payroll-tbody" class="divide-y divide-slate-800"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- HISTORIAL -->
+      <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-4">
+        <div>
+          <h2 class="text-xl font-bold text-white">📜 Historial de movimientos</h2>
+          <p class="text-xs text-slate-400 mt-1">Todo lo que registras queda guardado con su fecha (últimos 80). Las compras con tarjeta no mueven tu débito hasta que las pagas.</p>
+        </div>
+        <div class="overflow-x-auto max-h-96 overflow-y-auto">
+          <table class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-800 text-xs uppercase text-slate-400 sticky top-0">
+              <tr><th class="p-3">Fecha</th><th class="p-3">Tipo</th><th class="p-3">Detalle</th><th class="p-3 text-right">Efecto en débito</th><th class="p-3 text-center"></th></tr>
+            </thead>
+            <tbody id="history-tbody" class="divide-y divide-slate-800"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- RESPALDO -->
+      <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-4">
+        <div>
+          <h2 class="text-xl font-bold text-white">💾 Respaldo de datos</h2>
+          <p class="text-xs text-slate-400 mt-1">Tus datos viven solo en este navegador. Descarga un respaldo (archivo .json) cada cierto tiempo y guárdalo en un lugar seguro; con él puedes restaurar todo en otro navegador o equipo.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+          <button onclick="exportBackup()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm px-5 py-2.5 rounded-xl">⬇️ Descargar respaldo</button>
+          <button onclick="document.getElementById('backup-file').click()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm px-5 py-2.5 rounded-xl border border-slate-700">⬆️ Restaurar desde archivo</button>
+          <input type="file" id="backup-file" accept=".json,application/json" class="hidden" onchange="importBackupFile(this)">
+          <span id="backup-info" class="text-xs text-slate-400"></span>
+        </div>
+        <span id="backup-status" class="text-xs text-emerald-400"></span>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- MODALES -->
+  <div id="modal-card" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50 p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 space-y-4">
+      <h3 id="card-modal-title" class="font-bold text-lg text-white">Nueva Tarjeta</h3>
+      <input type="hidden" id="c-id">
+      <input type="text" id="c-name" placeholder="Nombre" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm">
+      <input type="number" id="c-limit" placeholder="Límite" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm">
+      <div class="grid grid-cols-2 gap-3">
+        <input type="number" id="c-cutoff" placeholder="Día Corte" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm">
+        <input type="number" id="c-due" placeholder="Día Pago" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm">
+      </div>
+      <input type="number" step="0.01" id="c-rate" placeholder="Tasa Anual" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm">
+      <label class="flex items-start gap-2 text-sm text-slate-300"><input type="checkbox" id="c-newperiod" class="accent-emerald-500 mt-1"><span>El día de corte inicia el periodo nuevo<span class="block text-[11px] text-slate-500">Déjalo desmarcado si el día de corte es el último día del periodo (así lo muestran los estados de Santander y Banamex). Márcalo solo si un cargo con fecha igual al día de corte aparece en el estado siguiente.</span></span></label>
+      <div class="flex justify-end space-x-2"><button onclick="closeModal('modal-card')" class="px-4 py-2 bg-slate-800 text-sm rounded-xl">Cancelar</button><button onclick="saveCard()" class="px-4 py-2 bg-emerald-600 text-sm rounded-xl">Guardar</button></div>
+    </div>
+  </div>
+
+  <div id="modal-purchase" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50 p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 space-y-4">
+      <h3 id="purchase-modal-title" class="font-bold text-lg text-white">Registrar Compra</h3>
+      <input type="hidden" id="p-id">
+      <select id="p-cardId" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm"></select>
+      <input type="text" id="p-desc" placeholder="Descripción" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm">
+      <div class="grid grid-cols-2 gap-3">
+        <input type="number" id="p-amount" placeholder="Monto" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm">
+        <input type="number" id="p-msi" value="1" placeholder="MSI" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm">
+      </div>
+      <input type="date" id="p-date" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm">
+      <p class="text-[11px] text-slate-500 -mt-2">Usa la <b>fecha de cargo</b> de tu estado de cuenta, no la de la operación. Si aún no se refleja, suma 1 o 2 días a la fecha en que compraste (solo importa si fue justo antes de un corte).</p>
+      <div class="flex justify-end space-x-2"><button onclick="closeModal('modal-purchase')" class="px-4 py-2 bg-slate-800 text-sm rounded-xl">Cancelar</button><button onclick="savePurchase()" class="px-4 py-2 bg-emerald-600 text-sm rounded-xl">Guardar</button></div>
+    </div>
+  </div>
+
+  <div id="modal-payment" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50 p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 space-y-4">
+      <h3 class="font-bold text-lg text-white">Abono a Tarjeta</h3>
+      <select id="pay-cardId" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm"></select>
+      <input type="date" id="pay-dueDate" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm">
+      <input type="number" id="pay-amount" placeholder="Monto Abonado" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm">
+      <div class="flex justify-end space-x-2"><button onclick="closeModal('modal-payment')" class="px-4 py-2 bg-slate-800 text-sm rounded-xl">Cancelar</button><button onclick="saveCardPayment()" class="px-4 py-2 bg-emerald-600 text-sm rounded-xl">Guardar</button></div>
+    </div>
+  </div>
+
+  <div id="modal-transaction" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50 p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 space-y-4">
+      <h3 class="font-bold text-lg text-white">Gasto o Ahorro</h3>
+      <select id="tx-type" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm"><option value="debit_expense">Gasto Diario</option><option value="savings_transfer">Ahorro</option><option value="extra_income">Ingreso Extra</option></select>
+      <input type="text" id="tx-desc" placeholder="Descripción" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm">
+      <input type="number" id="tx-amount" placeholder="Monto" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm">
+      <input type="date" id="tx-date" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm">
+      <div class="flex justify-end space-x-2"><button onclick="closeModal('modal-transaction')" class="px-4 py-2 bg-slate-800 text-sm rounded-xl">Cancelar</button><button onclick="saveTransaction()" class="px-4 py-2 bg-emerald-600 text-sm rounded-xl">Guardar</button></div>
+    </div>
+  </div>
+
+  <div id="modal-expense" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50 p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 space-y-4">
+      <h3 id="expense-modal-title" class="font-bold text-lg text-white">Nuevo Gasto Fijo</h3>
+      <input type="hidden" id="e-id">
+      <input type="text" id="e-title" placeholder="Nombre (Renta, Internet...)" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm">
+      <input type="number" step="0.01" id="e-amount" placeholder="Monto" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm">
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Frecuencia</label>
+        <select id="e-freq" onchange="toggleExpenseFields()" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm">
+          <option value="recurring">Días fijos de cada mes</option>
+          <option value="biweekly">Cada 14 días</option>
+          <option value="weekly">Cada semana</option>
+          <option value="once">Una sola vez</option>
+        </select>
+      </div>
+      <div id="e-days-wrap">
+        <label class="block text-xs text-slate-400 mb-1">Días del mes (separados por coma; 31 = fin de mes)</label>
+        <input type="text" id="e-days" placeholder="Ej. 2   o   15, 31" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm">
+      </div>
+      <div id="e-start-wrap">
+        <label class="block text-xs text-slate-400 mb-1">Aplica desde</label>
+        <input type="date" id="e-start" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm">
+        <p class="text-[11px] text-slate-500 mt-1">Los cobros anteriores a esta fecha no se descuentan de tu saldo.</p>
+      </div>
+      <div id="e-end-wrap">
+        <label class="block text-xs text-slate-400 mb-1">Hasta (opcional)</label>
+        <input type="date" id="e-end" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm">
+      </div>
+      <div id="e-date-wrap" class="hidden">
+        <label class="block text-xs text-slate-400 mb-1">Fecha del gasto</label>
+        <input type="date" id="e-date" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm">
+      </div>
+      <div class="flex justify-end space-x-2"><button onclick="closeModal('modal-expense')" class="px-4 py-2 bg-slate-800 text-sm rounded-xl">Cancelar</button><button onclick="saveExpense()" class="px-4 py-2 bg-emerald-600 text-sm rounded-xl">Guardar</button></div>
+    </div>
+  </div>
+
+  <div id="modal-loan" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50 p-4 overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 space-y-4 my-auto">
+      <h3 id="loan-modal-title" class="font-bold text-lg text-white">Nuevo Préstamo</h3>
+      <div id="loan-form" class="space-y-3">
+        <input type="hidden" id="l-id">
+        <input type="text" id="l-name" placeholder="Nombre (Crédito Nómina, Préstamo Nu...)" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm">
+        <input type="text" id="l-lender" placeholder="Institución (opcional)" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm">
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-xs text-slate-400 mb-1">Saldo pendiente de capital ($)</label><input type="number" step="0.01" id="l-balance" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm"></div>
+          <div><label class="block text-xs text-slate-400 mb-1">Tasa anual (%)</label><input type="number" step="0.01" id="l-rate" placeholder="Ej. 45" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm"></div>
+          <div><label class="block text-xs text-slate-400 mb-1">Mensualidad ($)</label><input type="number" step="0.01" id="l-payment" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm"></div>
+          <div><label class="block text-xs text-slate-400 mb-1">Fecha del próximo pago</label><input type="date" id="l-first" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm"></div>
+        </div>
+        <p class="text-[11px] text-slate-500">Si el préstamo es nuevo, el saldo es el monto que te prestaron. Si ya lo traes, el saldo que te muestra tu banco hoy (sin intereses futuros).</p>
+        <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="l-iva" class="accent-emerald-500" checked> Los intereses causan IVA (16%)</label>
+        <div id="l-disb-wrap" class="space-y-2 pt-3 border-t border-slate-800">
+          <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="l-disb" onchange="toggleDisbursement()" class="accent-emerald-500"> Registrar el dinero que me depositan como ingreso</label>
+          <div id="l-disb-fields" class="hidden grid grid-cols-2 gap-3">
+            <div><label class="block text-xs text-slate-400 mb-1">Monto depositado ($)</label><input type="number" step="0.01" id="l-disbAmount" placeholder="Igual al saldo" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm"></div>
+            <div><label class="block text-xs text-slate-400 mb-1">Fecha del depósito</label><input type="date" id="l-disbDate" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm"></div>
+          </div>
+        </div>
+        <div id="l-preview" class="bg-slate-800/60 border border-slate-700 rounded-xl p-3 text-xs text-slate-300"></div>
+      </div>
+      <div class="flex justify-end space-x-2"><button onclick="closeModal('modal-loan')" class="px-4 py-2 bg-slate-800 text-sm rounded-xl">Cancelar</button><button onclick="saveLoan()" class="px-4 py-2 bg-emerald-600 text-sm rounded-xl">Guardar</button></div>
+    </div>
+  </div>
+
+  <div id="modal-loan-extra" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50 p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 space-y-4">
+      <h3 id="x-title" class="font-bold text-lg text-white">Abono extra a capital</h3>
+      <input type="hidden" id="x-id">
+      <div><label class="block text-xs text-slate-400 mb-1">Fecha del abono</label><input type="date" id="x-date" onchange="updateLoanExtraHint()" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm"></div>
+      <div><label class="block text-xs text-slate-400 mb-1">Monto ($)</label><input type="number" step="0.01" id="x-amount" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm"></div>
+      <div id="x-hint" class="text-xs text-slate-400"></div>
+      <p class="text-[11px] text-slate-500">Baja tu saldo y se descuenta de tu débito en esa fecha. La mensualidad se queda igual, así que terminas de pagar antes.</p>
+      <div class="flex justify-end space-x-2"><button onclick="closeModal('modal-loan-extra')" class="px-4 py-2 bg-slate-800 text-sm rounded-xl">Cancelar</button><button onclick="saveLoanExtra()" class="px-4 py-2 bg-emerald-600 text-sm rounded-xl">Registrar abono</button></div>
+    </div>
+  </div>
+
+  <div id="modal-sub" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50 p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 space-y-4">
+      <h3 id="sub-modal-title" class="font-bold text-lg text-white">Nueva Suscripción</h3>
+      <input type="hidden" id="s-id">
+      <select id="s-cardId" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm"></select>
+      <input type="text" id="s-desc" placeholder="Descripción (Netflix, Spotify...)" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm">
+      <div class="grid grid-cols-2 gap-3">
+        <input type="number" step="0.01" id="s-amount" placeholder="Monto mensual" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm">
+        <input type="number" id="s-day" placeholder="Día de cobro (1-31)" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm">
+      </div>
+      <div><label class="block text-xs text-slate-400 mb-1">Primer cobro que aún no está en un estado de cuenta ya capturado</label><input type="date" id="s-start" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm"></div>
+      <div><label class="block text-xs text-slate-400 mb-1">Termina (opcional)</label><input type="date" id="s-end" class="w-full bg-slate-800 p-2.5 rounded-xl text-white text-sm"></div>
+      <p class="text-[11px] text-slate-500">El día de cobro es el de la fecha de cargo en tu estado de cuenta. Los cobros anteriores a la fecha de inicio no se cuentan, porque ya van dentro de los estados que capturaste. No pongas una fecha antigua: la app trataría esos cobros pasados como estados sin pagar y calcularía intereses.</p>
+      <div class="flex justify-end space-x-2"><button onclick="closeModal('modal-sub')" class="px-4 py-2 bg-slate-800 text-sm rounded-xl">Cancelar</button><button onclick="saveSub()" class="px-4 py-2 bg-emerald-600 text-sm rounded-xl">Guardar</button></div>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="creditEngine.js"></script>
+  <script src="incomeEngine.js"></script>
+  <script src="cashflowEngine.js"></script>
+  <script src="debtSimulator.js"></script>
+  <script src="loanEngine.js"></script>
+
+  <script>
+    let appData = {
+      cards: JSON.parse(localStorage.getItem('fin_cards')) || [
+        { id: "card-bbva", name: "BBVA Azul", creditLimit: 20000, cutoffDay: 8, paymentDueDay: 28, annualInterestRate: 0.65 },
+        { id: "card-nu", name: "Tarjeta Nu", creditLimit: 12000, cutoffDay: 15, paymentDueDay: 5, annualInterestRate: 0.58 }
+      ],
+      purchases: JSON.parse(localStorage.getItem('fin_purchases')) || [],
+      subscriptions: JSON.parse(localStorage.getItem('fin_subs')) || [],
+      paymentsHistory: JSON.parse(localStorage.getItem('fin_payments')) || [],
+      debitAccount: JSON.parse(localStorage.getItem('fin_debit')) || { initialBalance: 3500, startDate: "2026-10-01" },
+      
+      // NUEVA CONFIGURACIÓN DE NÓMINA DETALLADA
+      incomeConfig: JSON.parse(localStorage.getItem('fin_incomeConfig_v2')) || {
+        dailySalary: 533.33,        // Salario diario del recibo (ya incluye el factor 1.2 de los sábados)
+        daysPaidPerPeriod: 14,      // Días pagados por catorcena
+        isrBase: 746.16,            // ISR de una catorcena sin bono
+        isrBonusRate: 0.2102,       // ISR adicional por cada $1 de bono (observado: 1,303.40 / 6,200)
+        imss: 287.87,               // IMSS fijo por catorcena
+        savingsFundPercent: 0.13,   // Fondo de ahorro = 13% del sueldo ordinario
+        hasBonus: true,
+        biweeklyBonusAmount: 5000,  // Bono conservador (el máximo real es 6,200)
+        bonusPattern: "monthly-first", // Primera catorcena de cada mes (calendario de la empresa)
+        firstPayDate: "2026-10-30", // Último pago real (ancla el ciclo de 14 días)
+        firstPayHasBonus: false
+      },
+
+      cashflowRules: JSON.parse(localStorage.getItem('fin_rules')) || [
+        { id: "exp-renta", title: "Renta Departamento", type: "direct_expense", amount: 4500, frequency: "recurring", daysOfMonth: [2], startDate: "2026-10-01", endDate: null }
+      ],
+      directTransactions: JSON.parse(localStorage.getItem('fin_dtxts')) || [],
+      actualPayrolls: JSON.parse(localStorage.getItem('fin_actualPayrolls')) || [],
+      loans: JSON.parse(localStorage.getItem('fin_loans')) || [],
+      settings: JSON.parse(localStorage.getItem('fin_settings')) || { savingsRatePercent: 10 }
+    };
+
+    // Limpieza de datos heredados: ids faltantes (para poder borrar) y reglas de ingreso viejas (la nómina vive en Config)
+    function normalizeData() {
+      appData.paymentsHistory.forEach(p => { if (!p.id) p.id = 'pay-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); });
+      appData.cashflowRules = appData.cashflowRules.filter(r => r.type !== 'income');
+    }
+    normalizeData();
+
+    // La fecha de consulta arranca en el día real de hoy (puedes cambiarla con el selector)
+    let currentSystemDate = formatDate(new Date());
+    let currentCalendarYear = parseInt(currentSystemDate.slice(0, 4), 10);
+    let currentCalendarMonth = parseInt(currentSystemDate.slice(5, 7), 10) - 1;
+
+    function currentYM() {
+      const [y, m] = currentSystemDate.split('-').map(Number);
+      return { y, m: m - 1 };
+    }
+
+    function saveData() {
+      localStorage.setItem('fin_cards', JSON.stringify(appData.cards));
+      localStorage.setItem('fin_purchases', JSON.stringify(appData.purchases));
+      localStorage.setItem('fin_subs', JSON.stringify(appData.subscriptions));
+      localStorage.setItem('fin_payments', JSON.stringify(appData.paymentsHistory));
+      localStorage.setItem('fin_debit', JSON.stringify(appData.debitAccount));
+      localStorage.setItem('fin_incomeConfig_v2', JSON.stringify(appData.incomeConfig));
+      localStorage.setItem('fin_rules', JSON.stringify(appData.cashflowRules));
+      localStorage.setItem('fin_dtxts', JSON.stringify(appData.directTransactions));
+      localStorage.setItem('fin_actualPayrolls', JSON.stringify(appData.actualPayrolls));
+      localStorage.setItem('fin_loans', JSON.stringify(appData.loans));
+      localStorage.setItem('fin_settings', JSON.stringify(appData.settings));
+    }
+
+    function updateSystemDate(useToday = false) {
+      const input = document.getElementById('currentDateInput');
+      if (useToday === true || !input.value) input.value = formatDate(new Date());
+      currentSystemDate = input.value;
+      const ym = currentYM();
+      currentCalendarYear = ym.y;
+      currentCalendarMonth = ym.m;
+      refreshAll();
+    }
+
+    function switchTab(tabName) {
+      ['dashboard', 'calendar', 'cards', 'debts', 'loans', 'settings'].forEach(t => {
+        document.getElementById(`view-${t}`).classList.add('hidden');
+        document.getElementById(`tab-${t}`).classList.remove('bg-emerald-600', 'text-white');
+        document.getElementById(`tab-${t}`).classList.add('bg-slate-800', 'text-slate-300');
+      });
+      document.getElementById(`view-${tabName}`).classList.remove('hidden');
+      document.getElementById(`tab-${tabName}`).classList.remove('bg-slate-800', 'text-slate-300');
+      document.getElementById(`tab-${tabName}`).classList.add('bg-emerald-600', 'text-white');
+
+      if (tabName === 'calendar') renderCalendar();
+      if (tabName === 'cards') renderCardsView();
+      if (tabName === 'dashboard') refreshDashboard();
+      if (tabName === 'loans') renderLoansView();
+      if (tabName === 'settings') renderSettingsView();
+    }
+
+    function openModal(modalId) {
+      document.getElementById(modalId).classList.remove('hidden');
+      document.getElementById(modalId).classList.add('flex');
+      populateSelects();
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.remove('flex');
+      document.getElementById(modalId).classList.add('hidden');
+    }
+
+    function populateSelects() {
+      const cardOptions = appData.cards.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+      if(document.getElementById('p-cardId')) document.getElementById('p-cardId').innerHTML = cardOptions;
+      if(document.getElementById('pay-cardId')) document.getElementById('pay-cardId').innerHTML = cardOptions;
+      if(document.getElementById('s-cardId')) document.getElementById('s-cardId').innerHTML = cardOptions;
+    }
+
+    function refreshDashboard() {
+      const debitSummary = calculateLiveDebitBalance(appData.debitAccount, appData.incomeConfig, appData.cashflowRules, appData.directTransactions, appData.paymentsHistory, currentSystemDate, appData.actualPayrolls, appData.loans);
+      document.getElementById('metric-debit-balance').innerText = `$${debitSummary.currentAvailableDebit.toLocaleString('es-MX', {minimumFractionDigits: 2})}`;
+
+      const timeline = buildMasterTimeline(appData.cards, appData.purchases, appData.subscriptions, appData.paymentsHistory, appData.cashflowRules, appData.incomeConfig, appData.directTransactions, currentYM().y, currentYM().m - 1, 7, currentSystemDate, appData.actualPayrolls, appData.loans);
+      const peace = getPeaceOfMindMetrics(debitSummary, appData.settings.savingsRatePercent, timeline, appData.directTransactions, currentSystemDate, appData.incomeConfig);
+
+      document.getElementById('metric-daily-budget').innerText = `$${peace.gastoDiarioSeguro.toLocaleString('es-MX', {minimumFractionDigits: 2})} / día`;
+      document.getElementById('metric-days-left').innerText = `Próxima nómina: ${peace.proximaNominaFecha} (en ${peace.diasParaNomina} día${peace.diasParaNomina === 1 ? '' : 's'})`;
+      document.getElementById('metric-savings-sub').innerText = `Meta del periodo: $${money(peace.metaAhorroPeriodo)} · apartado: $${money(peace.yaAhorradoEnPeriodo)}`;
+      document.getElementById('metric-commitments').innerText = `$${peace.compromisosPorPagar.toLocaleString('es-MX', {minimumFractionDigits: 2})}`;
+      document.getElementById('metric-savings').innerText = `$${peace.faltaApartarAhorro.toLocaleString('es-MX', {minimumFractionDigits: 2})}`;
+
+      const banner = document.getElementById('health-banner');
+      banner.className = peace.gastoLibreTotal >= 0 
+        ? "p-4 rounded-xl border bg-emerald-950/40 border-emerald-800/60 text-emerald-300 font-medium text-sm flex items-center justify-between"
+        : "p-4 rounded-xl border bg-rose-950/40 border-rose-800/60 text-rose-300 font-medium text-sm flex items-center justify-between";
+      document.getElementById('health-banner-text').innerText = peace.estadoSalud;
+
+      const cardSummaries = appData.cards.map(card => {
+        const summary = getCardCreditSummary(card, appData.purchases, appData.subscriptions, appData.paymentsHistory, currentSystemDate);
+        return `
+          <div class="flex justify-between items-center text-xs bg-slate-800 p-2.5 rounded-xl border border-slate-700">
+            <div><span class="font-semibold text-white">${summary.cardName}</span><div class="text-slate-400">Usado: (${summary.usagePercentage})</div></div>
+            <div class="text-right"><span class="text-emerald-400 font-semibold">Libre: $${summary.availableCredit.toLocaleString()}</span></div>
+          </div>
+        `;
+      }).join('');
+      document.getElementById('dashboard-cards-summary').innerHTML = cardSummaries;
+
+      const outlook = projectDebtFreeOutlook(debitSummary.currentAvailableDebit, appData.cards, appData.purchases, appData.subscriptions, appData.paymentsHistory, appData.cashflowRules, appData.incomeConfig, appData.directTransactions, currentSystemDate, appData.actualPayrolls, appData.loans);
+      const fmtMoney = n => (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const box = (label, value, sub, tone) => `<div class="bg-slate-800 border border-slate-700 rounded-xl p-3"><div class="text-slate-400">${label}</div><div class="font-bold text-sm ${tone}">${value}</div><div class="text-slate-500">${sub}</div></div>`;
+      document.getElementById('outlook-summary').innerHTML = [
+        box('Punto más bajo', fmtMoney(outlook.minBalance), outlook.minBalanceDate || 'sin movimientos', outlook.minBalance < 0 ? 'text-rose-300' : 'text-emerald-400'),
+        box('Saldo vuelve a ser positivo', outlook.everNegative ? (outlook.recoveryDate || 'No en este horizonte') : 'Nunca baja de 0', outlook.everNegative ? 'y ya no vuelve a bajar de 0' : 'con lo registrado', outlook.everNegative ? 'text-amber-300' : 'text-emerald-400'),
+        box('Libre de deudas', outlook.lastDebtPaymentDate || 'Sin deudas', outlook.lastDebtPaymentDate ? 'último pago · saldo ese día ' + fmtMoney(outlook.balanceAtDebtFree) : '', 'text-sky-300')
+      ].join('');
+      const full = document.getElementById('rb-full') && document.getElementById('rb-full').checked;
+      const rbEnd = formatDate(new Date(currentYM().y, currentYM().m + 3, 0));
+      const runningBalance = full ? outlook.ledger : outlook.ledger.filter(r => r.fecha <= rbEnd);
+      document.getElementById('running-balance-tbody').innerHTML = runningBalance.map(rb => `
+        <tr class="hover:bg-slate-800/50">
+          <td class="p-3 text-xs">${rb.fecha}</td><td class="p-3 text-sm font-medium text-white">${rb.concepto}</td><td class="p-3 text-xs">${rb.tipo}</td>
+          <td class="p-3 text-sm text-right font-semibold">$${rb.monto.toLocaleString()}</td><td class="p-3 text-sm text-right font-bold ${rb.saldoProyectado < 0 ? 'text-rose-400' : 'text-emerald-400'}">$${rb.saldoProyectado.toLocaleString()}</td>
+          <td class="p-3 text-center text-xs"><span class="px-2 py-0.5 rounded ${rb.alerta === 'OK' ? 'bg-emerald-900/50 text-emerald-300' : 'bg-rose-900/50 text-rose-300'}">${rb.alerta}</span></td>
+        </tr>
+      `).join('') || `<tr><td colspan="6" class="p-4 text-center text-slate-500">Sin movimientos futuros.</td></tr>`;
+    }
+
+    function renderCalendar() {
+      const title = document.getElementById('calendarMonthTitle');
+      const grid = document.getElementById('calendarGrid');
+      const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+      title.innerText = `${monthNames[currentCalendarMonth]} ${currentCalendarYear}`;
+
+      const timeline = buildMasterTimeline(appData.cards, appData.purchases, appData.subscriptions, appData.paymentsHistory, appData.cashflowRules, appData.incomeConfig, appData.directTransactions, currentCalendarYear, currentCalendarMonth, 1, currentSystemDate, appData.actualPayrolls, appData.loans);
+      const firstDayIndex = new Date(currentCalendarYear, currentCalendarMonth, 1).getDay();
+      const adjustedFirstDay = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
+      const totalDays = new Date(currentCalendarYear, currentCalendarMonth + 1, 0).getDate();
+
+      let cells = "";
+      for (let i = 0; i < adjustedFirstDay; i++) {
+        cells += `<div class="bg-slate-900/40 border border-slate-800/50 rounded-xl min-h-24 opacity-30"></div>`;
+      }
+      for (let day = 1; day <= totalDays; day++) {
+        const dStr = `${currentCalendarYear}-${String(currentCalendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const dayEvents = timeline.filter(e => e.date === dStr);
+        const eventsHtml = dayEvents.map(ev => {
+          let badgeColor = "bg-slate-800 text-slate-300";
+          if (ev.type === 'income') badgeColor = "bg-emerald-950 text-emerald-300 border border-emerald-800";
+          else if (ev.type === 'card_payment') badgeColor = "bg-rose-950 text-rose-300 border border-rose-800";
+          else if (ev.type === 'card_cutoff') badgeColor = "bg-amber-950 text-amber-300 border border-amber-800";
+          else if (ev.type === 'direct_expense') badgeColor = ev.category === 'Préstamo' ? "bg-violet-950 text-violet-300 border border-violet-800" : "bg-blue-950 text-blue-300 border border-blue-800";
+          return `<div class="text-[10px] px-1.5 py-0.5 rounded truncate ${badgeColor}" title="${ev.title}: $${ev.amount || 0}">${ev.title}</div>`;
+        }).join('');
+
+        cells += `
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-2 min-h-28 flex flex-col justify-between">
+            <span class="text-xs font-bold text-slate-300">${day}</span>
+            <div class="space-y-1 overflow-y-auto max-h-20">${eventsHtml}</div>
+          </div>
+        `;
+      }
+      grid.innerHTML = cells;
+    }
+
+    function changeMonth(direction) {
+      currentCalendarMonth += direction;
+      if (currentCalendarMonth > 11) { currentCalendarMonth = 0; currentCalendarYear++; }
+      if (currentCalendarMonth < 0) { currentCalendarMonth = 11; currentCalendarYear--; }
+      renderCalendar();
+    }
+
+    function goToCurrentMonth() {
+      const parts = currentSystemDate.split('-').map(Number);
+      currentCalendarYear = parts[0];
+      currentCalendarMonth = parts[1] - 1;
+      renderCalendar();
+    }
+
+    function renderCardsView() {
+      const container = document.getElementById('cards-container');
+      container.innerHTML = appData.cards.map(card => {
+        const summary = getCardCreditSummary(card, appData.purchases, appData.subscriptions, appData.paymentsHistory, currentSystemDate);
+        return `
+          <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4">
+            <div class="flex justify-between items-start">
+              <div>
+                <h3 class="font-bold text-lg text-white">${card.name}</h3>
+                <p class="text-xs text-slate-400">Corte: Día ${card.cutoffDay} | Pago: Día ${card.paymentDueDay}</p>
+              </div>
+              <div class="flex space-x-2">
+                <button onclick="openCardModal('${card.id}')" class="text-xs bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700">✏️ Editar</button>
+                <button onclick="deleteCard('${card.id}')" class="text-xs bg-rose-950/50 text-rose-300 px-2.5 py-1 rounded-lg border border-rose-800">🗑️ Borrar</button>
+              </div>
+            </div>
+            <div class="text-right"><span class="text-emerald-400 font-bold text-sm">Libre: $${summary.availableCredit.toLocaleString()}</span> / Límite: $${card.creditLimit.toLocaleString()}</div>
+          </div>
+        `;
+      }).join('');
+
+      const purchasesTable = document.getElementById('purchases-table-body');
+      purchasesTable.innerHTML = appData.purchases.map(p => {
+        const card = appData.cards.find(c => c.id === p.cardId);
+        return `
+          <tr class="hover:bg-slate-800/50">
+            <td class="p-3 font-medium text-white">${p.description} <span class="text-xs text-slate-400 block">${card ? card.name : ''}</span></td>
+            <td class="p-3 text-xs">${p.date}</td>
+            <td class="p-3 text-right font-semibold">$${p.totalAmount.toLocaleString()}</td>
+            <td class="p-3 text-center text-xs">${p.monthsMsi} MSI</td>
+            <td class="p-3 text-center space-x-1">
+              <button onclick="openPurchaseModal('${p.id}')" class="text-xs bg-slate-800 px-2 py-1 rounded">✏️</button>
+              <button onclick="deletePurchase('${p.id}')" class="text-xs bg-rose-950/50 text-rose-300 px-2 py-1 rounded">🗑️</button>
+            </td>
+          </tr>
+        `;
+      }).join('') || `<tr><td colspan="5" class="p-4 text-center text-slate-500">No hay compras.</td></tr>`;
+
+      renderStatementsView();
+      renderSubscriptionsList();
+    }
+
+    // ==========================================
+    // UTILIDADES
+    // ==========================================
+    function newId(prefix) { return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`; }
+    function setVal(id, v) { document.getElementById(id).value = (v === undefined || v === null) ? '' : v; }
+    function getVal(id) { return document.getElementById(id).value.trim(); }
+    function money(n) { return Number(n).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+    // Repinta todas las vistas (dashboard, tarjetas y calendario)
+    function refreshAll() {
+      refreshDashboard();
+      renderCardsView();
+      renderCalendar();
+      renderExpensesList();
+      renderActualPayrolls();
+      renderHistory();
+      updateReconcileHint();
+      updateBackupBanner();
+      updateBackupInfo();
+      renderLoansView();
+    }
+
+    // ==========================================
+    // TARJETAS (agregar / editar / borrar)
+    // ==========================================
+    function openCardModal(id = null) {
+      openModal('modal-card');
+      const c = id ? appData.cards.find(x => x.id === id) : null;
+      document.getElementById('card-modal-title').innerText = c ? 'Editar Tarjeta' : 'Nueva Tarjeta';
+      setVal('c-id', c ? c.id : '');
+      setVal('c-name', c ? c.name : '');
+      setVal('c-limit', c ? c.creditLimit : '');
+      setVal('c-cutoff', c ? c.cutoffDay : '');
+      setVal('c-due', c ? c.paymentDueDay : '');
+      setVal('c-rate', c ? c.annualInterestRate : '0.60');
+      document.getElementById('c-newperiod').checked = c ? c.cutoffStartsNewPeriod === true : false;
+    }
+
+    function saveCard() {
+      const name = getVal('c-name');
+      const creditLimit = parseFloat(getVal('c-limit'));
+      const cutoffDay = parseInt(getVal('c-cutoff'), 10);
+      const paymentDueDay = parseInt(getVal('c-due'), 10);
+      const annualInterestRate = parseFloat(getVal('c-rate')) || 0.60;
+      const cutoffStartsNewPeriod = document.getElementById('c-newperiod').checked;
+
+      if (!name || !(creditLimit > 0)) return alert('Escribe un nombre y un límite mayor a 0.');
+      if (!(cutoffDay >= 1 && cutoffDay <= 31) || !(paymentDueDay >= 1 && paymentDueDay <= 31)) {
+        return alert('Los días de corte y de pago deben estar entre 1 y 31.');
+      }
+
+      const id = getVal('c-id');
+      if (id) {
+        const card = appData.cards.find(c => c.id === id);
+        Object.assign(card, { name, creditLimit, cutoffDay, paymentDueDay, annualInterestRate, cutoffStartsNewPeriod });
+      } else {
+        appData.cards.push({ id: newId('card'), name, creditLimit, cutoffDay, paymentDueDay, annualInterestRate, cutoffStartsNewPeriod });
+      }
+      saveData();
+      closeModal('modal-card');
+      refreshAll();
+    }
+
+    function deleteCard(id) {
+      const card = appData.cards.find(c => c.id === id);
+      if (!card) return;
+      if (!confirm(`¿Borrar "${card.name}" junto con sus compras, suscripciones y abonos?`)) return;
+      appData.cards = appData.cards.filter(c => c.id !== id);
+      appData.purchases = appData.purchases.filter(p => p.cardId !== id);
+      appData.subscriptions = appData.subscriptions.filter(s => s.cardId !== id);
+      appData.paymentsHistory = appData.paymentsHistory.filter(p => p.cardId !== id);
+      saveData();
+      refreshAll();
+    }
+
+    // ==========================================
+    // COMPRAS / MSI
+    // ==========================================
+    function openPurchaseModal(id = null) {
+      if (appData.cards.length === 0) return alert('Primero agrega una tarjeta.');
+      openModal('modal-purchase');
+      const p = id ? appData.purchases.find(x => x.id === id) : null;
+      document.getElementById('purchase-modal-title').innerText = p ? 'Editar Compra' : 'Registrar Compra';
+      setVal('p-id', p ? p.id : '');
+      setVal('p-cardId', p ? p.cardId : appData.cards[0].id);
+      setVal('p-desc', p ? p.description : '');
+      setVal('p-amount', p ? p.totalAmount : '');
+      setVal('p-msi', p ? p.monthsMsi : 1);
+      setVal('p-date', p ? p.date : currentSystemDate);
+    }
+
+    function savePurchase() {
+      const cardId = getVal('p-cardId');
+      const description = getVal('p-desc');
+      const totalAmount = parseFloat(getVal('p-amount'));
+      const monthsMsi = parseInt(getVal('p-msi'), 10) || 1;
+      const date = getVal('p-date');
+
+      if (!cardId || !description || !(totalAmount > 0) || !date) return alert('Completa tarjeta, descripción, monto y fecha.');
+      if (monthsMsi < 1) return alert('Los meses deben ser 1 o más.');
+
+      const id = getVal('p-id');
+      if (id) {
+        const p = appData.purchases.find(x => x.id === id);
+        Object.assign(p, { cardId, description, totalAmount, monthsMsi, date });
+      } else {
+        appData.purchases.push({ id: newId('p'), cardId, description, totalAmount, monthsMsi, date });
+      }
+      saveData();
+      closeModal('modal-purchase');
+      refreshAll();
+    }
+
+    function deletePurchase(id) {
+      if (!confirm('¿Borrar esta compra?')) return;
+      appData.purchases = appData.purchases.filter(p => p.id !== id);
+      saveData();
+      refreshAll();
+    }
+
+    // ==========================================
+    // ABONOS A TARJETA
+    // ==========================================
+    function openPaymentModal() {
+      if (appData.cards.length === 0) return alert('Primero agrega una tarjeta.');
+      openModal('modal-payment');
+      suggestPayment();
+    }
+
+    // Sugiere el estado de cuenta pendiente más antiguo de la tarjeta elegida
+    function suggestPayment() {
+      const card = appData.cards.find(c => c.id === getVal('pay-cardId'));
+      setVal('pay-dueDate', '');
+      setVal('pay-amount', '');
+      if (!card) return;
+      const pending = getCardStatements(appData.purchases, appData.subscriptions, card, appData.paymentsHistory, 12, currentSystemDate)
+        .find(st => st.remainingBalance > 0);
+      if (pending) {
+        setVal('pay-dueDate', pending.paymentDueDate);
+        setVal('pay-amount', pending.remainingBalance);
+      }
+    }
+
+    function saveCardPayment() {
+      const cardId = getVal('pay-cardId');
+      const paymentDueDate = getVal('pay-dueDate');
+      const amountPaid = parseFloat(getVal('pay-amount'));
+      if (!cardId || !paymentDueDate || !(amountPaid > 0)) return alert('Elige tarjeta, fecha límite del estado de cuenta y un monto mayor a 0.');
+
+      appData.paymentsHistory.push({ id: newId('pay'), cardId, paymentDueDate, amountPaid, paidOnDate: currentSystemDate });
+      saveData();
+      closeModal('modal-payment');
+      refreshAll();
+    }
+
+    // ==========================================
+    // GASTOS / AHORRO / INGRESOS EXTRA
+    // ==========================================
+    function openTransactionModal() {
+      openModal('modal-transaction');
+      setVal('tx-type', 'debit_expense');
+      setVal('tx-desc', '');
+      setVal('tx-amount', '');
+      setVal('tx-date', currentSystemDate);
+    }
+
+    function saveTransaction() {
+      const type = getVal('tx-type');
+      const description = getVal('tx-desc');
+      const amount = parseFloat(getVal('tx-amount'));
+      const date = getVal('tx-date');
+      if (!description || !(amount > 0) || !date) return alert('Completa descripción, monto y fecha.');
+
+      appData.directTransactions.push({ id: newId('tx'), type, description, amount, date });
+      saveData();
+      closeModal('modal-transaction');
+      refreshAll();
+    }
+
+    // ==========================================
+    // SIMULADOR DE DEUDAS (pestaña Deudas)
+    // ==========================================
+    function runDebtSimulationUI() {
+      const balance = parseFloat(getVal('sim-balance'));
+      let rate = parseFloat(getVal('sim-rate'));
+      const payment = parseFloat(getVal('sim-payment'));
+      const box = document.getElementById('sim-results');
+      box.classList.remove('hidden');
+
+      if (!(balance > 0) || !(payment > 0) || isNaN(rate)) {
+        box.innerHTML = `<div class="p-4 rounded-xl bg-rose-950/40 border border-rose-800 text-rose-300 text-sm">Revisa saldo, tasa y abono: deben ser números válidos.</div>`;
+        return;
+      }
+      if (rate > 1) rate = rate / 100; // permite escribir 55 en vez de 0.55
+
+      const res = simulateDebtAmortization(
+        { id: 'sim', name: 'Simulación', totalBalance: balance, annualInterestRate: rate, startDate: currentSystemDate },
+        payment
+      );
+
+      if (res.error) {
+        box.innerHTML = `<div class="p-4 rounded-xl bg-rose-950/40 border border-rose-800 text-rose-300 text-sm">${res.message}</div>`;
+        return;
+      }
+
+      const rows = res.amortizationSchedule.map(r => `
+        <tr class="hover:bg-slate-800/50">
+          <td class="p-2 text-xs">${r.mes}</td><td class="p-2 text-xs">${r.fechaPago}</td>
+          <td class="p-2 text-right text-xs">$${money(r.pagoMensual)}</td>
+          <td class="p-2 text-right text-xs text-rose-300">$${money(r.interesMasIva)}</td>
+          <td class="p-2 text-right text-xs text-emerald-300">$${money(r.abonoACapital)}</td>
+          <td class="p-2 text-right text-xs font-semibold">$${money(r.saldoRestante)}</td>
+        </tr>`).join('');
+
+      box.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-slate-800 p-4 rounded-xl"><div class="text-xs text-slate-400">Meses para liquidar</div><div class="text-xl font-bold text-white">${res.totalMonthsToPay}</div></div>
+          <div class="bg-slate-800 p-4 rounded-xl"><div class="text-xs text-slate-400">Fecha de liquidación</div><div class="text-xl font-bold text-emerald-400">${res.finalPayoffDate}</div></div>
+          <div class="bg-slate-800 p-4 rounded-xl"><div class="text-xs text-slate-400">Intereses + IVA totales</div><div class="text-xl font-bold text-rose-400">$${money(res.totalInterest)}</div></div>
+        </div>
+        <div class="overflow-x-auto max-h-96 overflow-y-auto">
+          <table class="w-full text-left text-slate-300">
+            <thead class="bg-slate-800 text-xs uppercase text-slate-400 sticky top-0">
+              <tr><th class="p-2">Mes</th><th class="p-2">Fecha</th><th class="p-2 text-right">Pago</th><th class="p-2 text-right">Interés+IVA</th><th class="p-2 text-right">Capital</th><th class="p-2 text-right">Saldo</th></tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">${rows}</tbody>
+          </table>
+        </div>`;
+    }
+
+    // ==========================================
+    // CONFIGURACIÓN: NÓMINA, GASTOS FIJOS, CUENTA Y AHORRO
+    // ==========================================
+    function esc(s) { return String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch])); }
+    function pct(x) { return Number((x * 100).toFixed(2)); }
+    function flash(id, msg) { const el = document.getElementById(id); el.innerText = msg; setTimeout(() => { el.innerText = ''; }, 2500); }
+
+    function renderSettingsView() {
+      const c = appData.incomeConfig;
+      setVal('inc-daily', c.dailySalary);
+      setVal('inc-days', c.daysPaidPerPeriod ?? 14);
+      setVal('inc-isr', c.isrBase ?? 0);
+      setVal('inc-imss', c.imss ?? 0);
+      setVal('inc-fund', pct(c.savingsFundPercent ?? 0));
+      setVal('inc-isrBonus', pct(c.isrBonusRate ?? 0));
+      document.getElementById('inc-hasBonus').checked = !!c.hasBonus;
+      setVal('inc-bonus', c.biweeklyBonusAmount || 0);
+      setVal('inc-pattern', c.bonusPattern || 'monthly-first');
+      setVal('inc-first', c.firstPayDate);
+      document.getElementById('inc-firstBonus').checked = c.firstPayHasBonus !== false;
+      setVal('acc-balance', appData.debitAccount.initialBalance);
+      setVal('acc-start', appData.debitAccount.startDate);
+      setVal('set-savings', appData.settings.savingsRatePercent);
+      updateIncomePreview();
+      renderExpensesList();
+      suggestPayrollForm();
+    }
+
+    // ---------- Nómina ----------
+    function readIncomeForm() {
+      const dailySalary = parseFloat(getVal('inc-daily'));
+      const daysPaidPerPeriod = parseFloat(getVal('inc-days'));
+      const isrBase = parseFloat(getVal('inc-isr'));
+      const imss = parseFloat(getVal('inc-imss'));
+      const fund = parseFloat(getVal('inc-fund'));
+      const isrBonus = parseFloat(getVal('inc-isrBonus'));
+      const hasBonus = document.getElementById('inc-hasBonus').checked;
+      const bonus = parseFloat(getVal('inc-bonus')) || 0;
+      const bonusPattern = getVal('inc-pattern') || 'monthly-first';
+      const firstPayDate = getVal('inc-first');
+      const firstPayHasBonus = document.getElementById('inc-firstBonus').checked;
+
+      if (!(dailySalary > 0)) return { error: 'Escribe tu salario diario.' };
+      if (!(daysPaidPerPeriod > 0 && daysPaidPerPeriod <= 31)) return { error: 'Días pagados por catorcena: un número entre 1 y 31.' };
+      if (isNaN(isrBase) || isrBase < 0) return { error: 'Escribe el ISR de una catorcena sin bono (puede ser 0).' };
+      if (isNaN(imss) || imss < 0) return { error: 'Escribe el IMSS por catorcena (puede ser 0).' };
+      if (isNaN(fund) || fund < 0 || fund > 100) return { error: 'Fondo de ahorro: escribe un porcentaje entre 0 y 100.' };
+      if (!firstPayDate) return { error: 'Elige la fecha de un pago de referencia.' };
+      if (hasBonus && !(bonus > 0)) return { error: 'Escribe el monto del bono o desmarca la casilla.' };
+      if (hasBonus && (isNaN(isrBonus) || isrBonus < 0 || isrBonus > 100)) return { error: 'ISR extra sobre el bono: un porcentaje entre 0 y 100.' };
+
+      return { config: {
+        dailySalary, daysPaidPerPeriod, isrBase, imss,
+        isrBonusRate: (isNaN(isrBonus) ? 0 : isrBonus) / 100,
+        savingsFundPercent: fund / 100,
+        hasBonus, biweeklyBonusAmount: bonus, bonusPattern, firstPayDate, firstPayHasBonus
+      } };
+    }
+
+    function paycheckColumn(title, p) {
+      return `
+        <div class="space-y-1">
+          <div class="text-xs uppercase text-slate-400">${title}</div>
+          <div>Sueldo ordinario: $${money(p.ordinaryPay)}</div>
+          ${p.bonus > 0 ? `<div>+ Bono: $${money(p.bonus)}</div>` : ''}
+          <div>− ISR: $${money(p.isr)}</div>
+          <div>− IMSS: $${money(p.imss)}</div>
+          <div>− Fondo de ahorro: $${money(p.savingsRetention)}</div>
+          <div class="font-semibold text-white">Neto a tu débito: $${money(p.netPayToDebit)}</div>
+        </div>`;
+    }
+
+    function updateIncomePreview() {
+      const box = document.getElementById('inc-preview');
+      const { config, error } = readIncomeForm();
+      if (error) { box.innerHTML = `<span class="text-slate-500">${esc(error)}</span>`; return; }
+
+      const plain = calculateBiweeklyPaycheck(config, false);
+      const withBonus = config.hasBonus ? calculateBiweeklyPaycheck(config, true) : null;
+      const ym = currentYM();
+      const next = projectDetailedIncomes(config, ym.y, ym.m, 3).filter(e => e.date >= currentSystemDate).slice(0, 4);
+      const nextHtml = next.map(e => `<li>${e.date}: <span class="text-emerald-400 font-semibold">$${money(e.amount)}</span>${e.breakdown.bonus > 0 ? ' <span class="text-amber-300">(con bono)</span>' : ''}</li>`).join('');
+
+      // Promedio anual: 26 pagos al año; con bono mensual hay 12 catorcenas con bono
+      const bonusPays = !withBonus ? 0 : config.bonusPattern === 'every' ? 26 : config.bonusPattern === 'alternate' ? 13 : 12;
+      const annual = withBonus ? bonusPays * withBonus.netPayToDebit + (26 - bonusPays) * plain.netPayToDebit : 26 * plain.netPayToDebit;
+      const avg = annual / 26;
+
+      box.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          ${paycheckColumn('Catorcena sin bono', plain)}
+          ${withBonus ? paycheckColumn('Catorcena con bono', withBonus) : '<div></div>'}
+          <div>
+            <div class="text-xs uppercase text-slate-400 mb-1">Próximos pagos</div>
+            <ul class="space-y-1">${nextHtml || '<li class="text-slate-500">Sin pagos próximos.</li>'}</ul>
+          </div>
+        </div>
+        <div class="mt-3 pt-3 border-t border-slate-700 text-xs text-slate-400">Promedio por catorcena: <span class="text-white font-semibold">$${money(avg)}</span> · aprox. <span class="text-white font-semibold">$${money(annual / 12)}</span> al mes (26 pagos y ${bonusPays} bonos al año)</div>`;
+    }
+
+    function saveIncomeConfig() {
+      const { config, error } = readIncomeForm();
+      if (error) return alert(error);
+      appData.incomeConfig = config;
+      saveData();
+      refreshAll();
+      updateIncomePreview();
+      flash('inc-status', '✔ Nómina guardada');
+    }
+
+    // ---------- Cuenta y ahorro ----------
+    function saveAccountSettings() {
+      const initialBalance = parseFloat(getVal('acc-balance'));
+      const startDate = getVal('acc-start');
+      const savingsRatePercent = parseFloat(getVal('set-savings'));
+      if (isNaN(initialBalance) || !startDate) return alert('Escribe el saldo inicial y su fecha base.');
+      if (isNaN(savingsRatePercent) || savingsRatePercent < 0 || savingsRatePercent > 100) return alert('La meta de ahorro debe estar entre 0 y 100%.');
+
+      if (startDate !== appData.debitAccount.startDate &&
+          !confirm('Cambiar la fecha base hace que todo lo anterior a la nueva fecha deje de contar en tu saldo (nóminas, gastos y abonos previos).\n\nSi solo quieres que el saldo coincida con tu banco, cancela y usa "Conciliar con mi saldo real".\n\n¿Cambiar la fecha base de todos modos?')) return;
+      appData.debitAccount = { initialBalance, startDate };
+      appData.settings.savingsRatePercent = savingsRatePercent;
+      saveData();
+      refreshAll();
+      flash('acc-status', '✔ Guardado');
+    }
+
+    // ---------- Gastos fijos ----------
+    function describeRule(r) {
+      const until = r.endDate ? ` · hasta ${r.endDate}` : '';
+      if (r.frequency === 'once') return `Una vez · ${r.date}`;
+      if (r.frequency === 'weekly') return `Cada 7 días desde ${r.startDate}${until}`;
+      if (r.frequency === 'biweekly') return `Cada 14 días desde ${r.startDate}${until}`;
+      const days = (r.daysOfMonth || []).map(d => d === 31 ? 'fin de mes' : d).join(', ');
+      return `Día ${days} de cada mes (desde ${r.startDate}${until})`;
+    }
+
+    function renderExpensesList() {
+      const tbody = document.getElementById('expenses-tbody');
+      if (!tbody) return;
+      const rules = appData.cashflowRules.filter(r => r.type === 'direct_expense');
+
+      tbody.innerHTML = rules.map(r => `
+        <tr class="hover:bg-slate-800/50">
+          <td class="p-3 font-medium text-white">${esc(r.title)}</td>
+          <td class="p-3 text-xs">${esc(describeRule(r))}</td>
+          <td class="p-3 text-right font-semibold">$${money(r.amount)}</td>
+          <td class="p-3 text-center space-x-1">
+            <button onclick="openExpenseModal('${r.id}')" class="text-xs bg-slate-800 px-2 py-1 rounded">✏️</button>
+            <button onclick="deleteExpense('${r.id}')" class="text-xs bg-rose-950/50 text-rose-300 px-2 py-1 rounded">🗑️</button>
+          </td>
+        </tr>`).join('') || `<tr><td colspan="4" class="p-4 text-center text-slate-500">Aún no tienes gastos fijos.</td></tr>`;
+
+      // Equivalente mensual aproximado de los gastos que se repiten
+      const monthly = rules.reduce((sum, r) => {
+        if (r.frequency === 'recurring') return sum + r.amount * (r.daysOfMonth || []).length;
+        if (r.frequency === 'weekly') return sum + r.amount * 52 / 12;
+        if (r.frequency === 'biweekly') return sum + r.amount * 26 / 12;
+        return sum;
+      }, 0);
+      document.getElementById('expenses-total').innerText = `Total mensual aproximado (gastos recurrentes): $${money(monthly)}`;
+    }
+
+    function toggleExpenseFields() {
+      const f = getVal('e-freq');
+      const show = (id, on) => document.getElementById(id).classList.toggle('hidden', !on);
+      show('e-days-wrap', f === 'recurring');
+      show('e-start-wrap', f !== 'once');
+      show('e-end-wrap', f !== 'once');
+      show('e-date-wrap', f === 'once');
+    }
+
+    function openExpenseModal(id = null) {
+      openModal('modal-expense');
+      const r = id ? appData.cashflowRules.find(x => x.id === id) : null;
+      document.getElementById('expense-modal-title').innerText = r ? 'Editar Gasto Fijo' : 'Nuevo Gasto Fijo';
+      setVal('e-id', r ? r.id : '');
+      setVal('e-title', r ? r.title : '');
+      setVal('e-amount', r ? r.amount : '');
+      setVal('e-freq', r ? r.frequency : 'recurring');
+      setVal('e-days', r && r.daysOfMonth ? r.daysOfMonth.join(', ') : '');
+      setVal('e-start', r && r.startDate ? r.startDate : currentSystemDate);
+      setVal('e-end', r && r.endDate ? r.endDate : '');
+      setVal('e-date', r && r.date ? r.date : currentSystemDate);
+      toggleExpenseFields();
+    }
+
+    function saveExpense() {
+      const title = getVal('e-title');
+      const amount = parseFloat(getVal('e-amount'));
+      const frequency = getVal('e-freq');
+      if (!title || !(amount > 0)) return alert('Escribe un nombre y un monto mayor a 0.');
+
+      const rule = { id: getVal('e-id') || newId('exp'), title, type: 'direct_expense', amount, frequency };
+
+      if (frequency === 'once') {
+        const date = getVal('e-date');
+        if (!date) return alert('Elige la fecha del gasto.');
+        rule.date = date;
+      } else {
+        const startDate = getVal('e-start');
+        const endDate = getVal('e-end');
+        if (!startDate) return alert('Elige desde cuándo aplica.');
+        if (endDate && endDate < startDate) return alert('La fecha final no puede ser anterior a la inicial.');
+        rule.startDate = startDate;
+        rule.endDate = endDate || null;
+
+        if (frequency === 'recurring') {
+          const days = [...new Set(getVal('e-days').split(',').map(s => parseInt(s.trim(), 10)).filter(d => d >= 1 && d <= 31))].sort((a, b) => a - b);
+          if (days.length === 0) return alert('Escribe al menos un día del mes (1 a 31). Usa 31 para fin de mes.');
+          rule.daysOfMonth = days;
+        }
+      }
+
+      const idx = appData.cashflowRules.findIndex(r => r.id === rule.id);
+      if (idx >= 0) appData.cashflowRules[idx] = rule; else appData.cashflowRules.push(rule);
+      saveData();
+      closeModal('modal-expense');
+      refreshAll();
+    }
+
+    function deleteExpense(id) {
+      const r = appData.cashflowRules.find(x => x.id === id);
+      if (!r || !confirm(`¿Borrar el gasto fijo "${r.title}"?`)) return;
+      appData.cashflowRules = appData.cashflowRules.filter(x => x.id !== id);
+      saveData();
+      refreshAll();
+    }
+
+    // ==========================================
+    // NÓMINA REAL RECIBIDA
+    // ==========================================
+    function projectedPayFor(dateStr) {
+      const [y, m] = dateStr.split('-').map(Number);
+      if (!y || !m) return null;
+      return projectDetailedIncomes(appData.incomeConfig, y, m - 1, 1).find(e => e.date === dateStr) || null;
+    }
+
+    function updatePayrollHint() {
+      const p = projectedPayFor(getVal('rp-date'));
+      document.getElementById('rp-hint').innerText = !getVal('rp-date') ? ''
+        : p ? `La app proyecta $${money(p.amount)} ese día${p.breakdown.bonus > 0 ? ' (con bono)' : ''}.`
+            : 'Ese día no es fecha de pago del ciclo; se registrará como ingreso adicional.';
+    }
+
+    // Sugiere el último día de pago (hasta la fecha de consulta) que todavía no tiene monto real
+    function suggestPayrollForm() {
+      const ym = currentYM();
+      const last = projectDetailedIncomes(appData.incomeConfig, ym.y, ym.m - 1, 3)
+        .filter(e => e.date <= currentSystemDate && !appData.actualPayrolls.some(a => a.date === e.date))
+        .pop();
+      if (last) { setVal('rp-date', last.date); setVal('rp-amount', last.amount); }
+      updatePayrollHint();
+    }
+
+    function registerActualPayroll() {
+      const date = getVal('rp-date');
+      const amount = parseFloat(getVal('rp-amount'));
+      if (!date || !(amount > 0)) return alert('Elige la fecha del depósito y escribe el neto recibido (mayor a 0).');
+      appData.actualPayrolls = appData.actualPayrolls.filter(a => a.date !== date);
+      appData.actualPayrolls.push({ id: newId('rp'), date, amount });
+      appData.actualPayrolls.sort((a, b) => a.date.localeCompare(b.date));
+      saveData();
+      refreshAll();
+      suggestPayrollForm();
+    }
+
+    function renderActualPayrolls() {
+      const tbody = document.getElementById('payroll-tbody');
+      if (!tbody) return;
+      const rows = [...appData.actualPayrolls].sort((a, b) => b.date.localeCompare(a.date));
+      tbody.innerHTML = rows.map(a => {
+        const p = projectedPayFor(a.date);
+        const diff = p ? a.amount - p.amount : null;
+        return `
+        <tr class="hover:bg-slate-800/50">
+          <td class="p-3">${esc(a.date)}</td>
+          <td class="p-3 text-right font-semibold text-white">$${money(a.amount)}</td>
+          <td class="p-3 text-right">${p ? '$' + money(p.amount) : '—'}</td>
+          <td class="p-3 text-right ${diff === null ? '' : diff < 0 ? 'text-rose-300' : 'text-emerald-300'}">${diff === null ? '—' : (diff >= 0 ? '+' : '−') + '$' + money(Math.abs(diff))}</td>
+          <td class="p-3 text-center"><button onclick="deleteHistoryItem('payroll','${a.id}')" class="text-xs bg-rose-950/50 text-rose-300 px-2 py-1 rounded">🗑️</button></td>
+        </tr>`;
+      }).join('') || `<tr><td colspan="5" class="p-4 text-center text-slate-500">Aún no registras ningún pago real. Mientras tanto se usa la proyección.</td></tr>`;
+    }
+
+    // ==========================================
+    // CONCILIACIÓN DE SALDO
+    // ==========================================
+    function computedDebit() {
+      return calculateLiveDebitBalance(appData.debitAccount, appData.incomeConfig, appData.cashflowRules, appData.directTransactions, appData.paymentsHistory, currentSystemDate, appData.actualPayrolls, appData.loans).currentAvailableDebit;
+    }
+
+    function updateReconcileHint() {
+      const el = document.getElementById('adj-hint');
+      if (el) el.innerText = `La app calcula $${money(computedDebit())} al ${currentSystemDate}.`;
+    }
+
+    function reconcileBalance() {
+      const real = parseFloat(getVal('adj-balance'));
+      if (isNaN(real)) return alert('Escribe tu saldo real.');
+      const computed = computedDebit();
+      const diff = Number((real - computed).toFixed(2));
+      if (Math.abs(diff) < 0.005) { flash('adj-status', '✔ Ya coincide, no hace falta ajuste'); return; }
+      const sign = diff > 0 ? '+' : '−';
+      if (!confirm(`La app calcula $${money(computed)} y tu saldo real es $${money(real)}.\n\nSe registrará un ajuste de ${sign}$${money(Math.abs(diff))} con fecha ${currentSystemDate}. ¿Continuar?`)) return;
+      appData.directTransactions.push({ id: newId('tx'), type: 'adjustment', description: 'Ajuste de conciliación', amount: diff, date: currentSystemDate });
+      saveData();
+      setVal('adj-balance', '');
+      refreshAll();
+      flash('adj-status', `✔ Ajuste de ${sign}$${money(Math.abs(diff))} registrado`);
+    }
+
+    // ==========================================
+    // HISTORIAL DE MOVIMIENTOS
+    // ==========================================
+    function buildHistoryRows() {
+      const typeLabel = { debit_expense: ['Gasto', -1], savings_transfer: ['Ahorro', -1], extra_income: ['Ingreso extra', 1], adjustment: ['Ajuste de saldo', 0] };
+      const cardName = id => (appData.cards.find(c => c.id === id) || {}).name || 'Tarjeta';
+      const rows = [];
+      appData.directTransactions.forEach(tx => {
+        const [label, sign] = typeLabel[tx.type] || [tx.type, -1];
+        rows.push({ date: tx.date, kind: 'tx', id: tx.id, label, detail: tx.description || '', effect: sign === 0 ? tx.amount : sign * tx.amount });
+      });
+      appData.paymentsHistory.forEach(p => rows.push({ date: p.paidOnDate || p.paymentDueDate, kind: 'pay', id: p.id, label: 'Abono a tarjeta', detail: cardName(p.cardId), effect: -p.amountPaid }));
+      appData.actualPayrolls.forEach(a => rows.push({ date: a.date, kind: 'payroll', id: a.id, label: 'Nómina recibida', detail: '', effect: a.amount }));
+      appData.purchases.forEach(p => rows.push({ date: p.date, kind: 'purchase', id: p.id, label: 'Compra con tarjeta', detail: `${p.description} · ${cardName(p.cardId)}${p.monthsMsi > 1 ? ` · ${p.monthsMsi} MSI` : ''}`, effect: null, amount: p.totalAmount }));
+      appData.loans.forEach(loan => {
+        const all = getLoanSchedule(loan).rows;
+        const live = new Set(loanLiveRows(loan).map(r => r.fechaPago));
+        all.forEach(r => {
+          if (!live.has(r.fechaPago)) return;
+          if (r.fechaPago > currentSystemDate || r.fechaPago < appData.debitAccount.startDate) return;
+          rows.push({ date: r.fechaPago, kind: 'loansched', id: null, label: 'Pago de préstamo', detail: `${loan.name} (${r.mes}/${all.length})`, effect: -r.pagoMensual });
+        });
+        (loan.paidHistory || []).forEach(p => rows.push({
+          date: p.date, kind: 'loanpay', id: p.id,
+          label: p.kind === 'extra' ? 'Abono extra a préstamo' : 'Pago de préstamo', detail: loan.name, effect: -p.amount
+        }));
+      });
+      return rows.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    }
+
+    function renderHistory() {
+      const tbody = document.getElementById('history-tbody');
+      if (!tbody) return;
+      tbody.innerHTML = buildHistoryRows().slice(0, 80).map(r => {
+        const effect = r.effect === null
+          ? `<span class="text-slate-400">$${money(r.amount)} (tarjeta)</span>`
+          : `<span class="${r.effect < 0 ? 'text-rose-300' : 'text-emerald-300'}">${r.effect < 0 ? '−' : '+'}$${money(Math.abs(r.effect))}</span>`;
+        return `
+        <tr class="hover:bg-slate-800/50">
+          <td class="p-3 text-xs">${esc(r.date)}</td>
+          <td class="p-3 text-xs">${esc(r.label)}</td>
+          <td class="p-3 text-xs">${esc(r.detail)}</td>
+          <td class="p-3 text-right font-semibold">${effect}</td>
+          <td class="p-3 text-center">${r.id ? `<button onclick="deleteHistoryItem('${r.kind}','${r.id}')" class="text-xs bg-rose-950/50 text-rose-300 px-2 py-1 rounded">🗑️</button>` : ''}</td>
+        </tr>`;
+      }).join('') || `<tr><td colspan="5" class="p-4 text-center text-slate-500">Aún no hay movimientos.</td></tr>`;
+    }
+
+    function deleteHistoryItem(kind, id) {
+      const msg = kind === 'loanpay'
+        ? 'Esto quita el pago del historial y de tu saldo de débito, pero NO cambia el saldo del préstamo. Para corregir el saldo, edita el préstamo.\n\n¿Borrar?'
+        : '¿Borrar este movimiento? Esta acción no se puede deshacer.';
+      if (!confirm(msg)) return;
+      if (kind === 'tx') appData.directTransactions = appData.directTransactions.filter(x => x.id !== id);
+      else if (kind === 'pay') appData.paymentsHistory = appData.paymentsHistory.filter(x => x.id !== id);
+      else if (kind === 'payroll') appData.actualPayrolls = appData.actualPayrolls.filter(x => x.id !== id);
+      else if (kind === 'purchase') appData.purchases = appData.purchases.filter(x => x.id !== id);
+      else if (kind === 'loanpay') appData.loans.forEach(l => { l.paidHistory = (l.paidHistory || []).filter(x => x.id !== id); });
+      saveData();
+      refreshAll();
+    }
+
+    // ==========================================
+    // RESPALDO (exportar / importar)
+    // ==========================================
+    const BACKUP_KEYS = ['cards', 'purchases', 'subscriptions', 'paymentsHistory', 'debitAccount', 'incomeConfig', 'cashflowRules', 'directTransactions', 'actualPayrolls', 'loans', 'settings'];
+
+    function buildBackup() {
+      const data = {};
+      BACKUP_KEYS.forEach(k => { data[k] = appData[k]; });
+      return { app: 'finanzas-tranquilidad', version: 1, exportedAt: new Date().toISOString(), data };
+    }
+
+    function exportBackup() {
+      appData.settings.lastBackupAt = new Date().toISOString();
+      saveData();
+      const json = JSON.stringify(buildBackup(), null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `respaldo-finanzas-${formatDate(new Date())}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      updateBackupBanner();
+      updateBackupInfo();
+      flash('backup-status', '✔ Respaldo descargado. Guárdalo en un lugar seguro.');
+    }
+
+    // Valida y aplica un respaldo ya leído (objeto). Devuelve { ok, error }.
+    function applyBackup(obj) {
+      if (!obj || obj.app !== 'finanzas-tranquilidad' || !obj.data) return { ok: false, error: 'El archivo no es un respaldo de esta app.' };
+      const d = obj.data;
+      const arrays = ['cards', 'purchases', 'subscriptions', 'paymentsHistory', 'cashflowRules', 'directTransactions'];
+      for (const k of arrays) if (!Array.isArray(d[k])) return { ok: false, error: `Al respaldo le falta la sección "${k}".` };
+      if (!d.debitAccount || typeof d.debitAccount.initialBalance !== 'number' || typeof d.debitAccount.startDate !== 'string') return { ok: false, error: 'La cuenta de débito del respaldo no es válida.' };
+      if (!d.incomeConfig || typeof d.incomeConfig !== 'object' || !(d.incomeConfig.dailySalary > 0)) return { ok: false, error: 'La configuración de nómina del respaldo no es válida.' };
+      if (!d.settings || typeof d.settings !== 'object') return { ok: false, error: 'Los ajustes del respaldo no son válidos.' };
+
+      BACKUP_KEYS.forEach(k => { appData[k] = d[k]; });
+      if (!Array.isArray(appData.actualPayrolls)) appData.actualPayrolls = [];
+      if (!Array.isArray(appData.loans)) appData.loans = [];
+      normalizeData();
+      saveData();
+      refreshAll();
+      renderSettingsView();
+      return { ok: true };
+    }
+
+    function importBackupFile(input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        let obj;
+        try { obj = JSON.parse(reader.result); } catch (e) { alert('No se pudo leer el archivo: no es un JSON válido.'); input.value = ''; return; }
+        const when = obj && obj.exportedAt ? new Date(obj.exportedAt).toLocaleString('es-MX') : 'fecha desconocida';
+        if (!confirm(`Se reemplazarán TODOS los datos actuales con el respaldo del ${when}.\n\nSi lo que tienes ahora es más reciente, cancela y descarga primero un respaldo.\n\n¿Restaurar?`)) { input.value = ''; return; }
+        const res = applyBackup(obj);
+        input.value = '';
+        if (!res.ok) return alert(res.error);
+        flash('backup-status', '✔ Datos restaurados');
+      };
+      reader.readAsText(file);
+    }
+
+    function backupAgeDays() {
+      const last = appData.settings.lastBackupAt;
+      return last ? Math.floor((Date.now() - new Date(last).getTime()) / 86400000) : null;
+    }
+
+    function updateBackupBanner() {
+      const banner = document.getElementById('backup-banner');
+      if (!banner) return;
+      const days = backupAgeDays();
+      const show = days === null || days >= 14;
+      banner.classList.toggle('hidden', !show);
+      document.getElementById('backup-banner-text').innerText = days === null
+        ? '💾 Aún no has respaldado tus datos. Hoy solo viven en este navegador.'
+        : `💾 Hace ${days} días que no respaldas tus datos.`;
+    }
+
+    function updateBackupInfo() {
+      const el = document.getElementById('backup-info');
+      if (!el) return;
+      const last = appData.settings.lastBackupAt;
+      el.innerText = `Último respaldo: ${last ? new Date(last).toLocaleString('es-MX') : 'nunca'}`;
+    }
+
+    // ==========================================
+    // PRÉSTAMOS
+    // ==========================================
+    const openLoanDetails = new Set();
+
+    function readLoanForm() {
+      const name = getVal('l-name');
+      const lender = getVal('l-lender');
+      const balance = parseFloat(getVal('l-balance'));
+      const ratePct = parseFloat(getVal('l-rate'));
+      const monthlyPayment = parseFloat(getVal('l-payment'));
+      const firstPaymentDate = getVal('l-first');
+      const ivaOnInterest = document.getElementById('l-iva').checked;
+
+      if (!name) return { error: 'Escribe un nombre para el préstamo.' };
+      if (!(balance > 0)) return { error: 'Escribe el saldo pendiente (mayor a 0).' };
+      if (isNaN(ratePct) || ratePct < 0 || ratePct > 300) return { error: 'La tasa anual debe estar entre 0 y 300 (por ejemplo 45 para 45%).' };
+      if (!(monthlyPayment > 0)) return { error: 'Escribe la mensualidad (mayor a 0).' };
+      if (!firstPaymentDate) return { error: 'Elige la fecha del próximo pago.' };
+      return { terms: { name, lender, balance, annualRate: ratePct / 100, ivaOnInterest, monthlyPayment, firstPaymentDate } };
+    }
+
+    function updateLoanPreview() {
+      const box = document.getElementById('l-preview');
+      const { terms, error } = readLoanForm();
+      if (error) { box.innerHTML = `<span class="text-slate-500">${esc(error)}</span>`; return; }
+      const sched = getLoanSchedule({ ...terms, id: 'probe', paidHistory: [] });
+      if (sched.error) { box.innerHTML = `<span class="text-rose-300">${esc(sched.message)}</span>`; return; }
+      const totalToPay = sched.rows.reduce((sum, r) => sum + r.pagoMensual, 0);
+      box.innerHTML = `Terminarías en <b class="text-white">${sched.totalMonths} pagos</b> (último: <b class="text-white">${sched.finalDate}</b>).<br>
+        Intereses${terms.ivaOnInterest ? ' + IVA' : ''} estimados: <b class="text-rose-300">$${money(sched.totalInterest)}</b> · Total a pagar: <b class="text-white">$${money(totalToPay)}</b><br>
+        <span class="text-slate-500">Estimación: compárala con la tabla de tu contrato.</span>`;
+    }
+
+    function toggleDisbursement() {
+      document.getElementById('l-disb-fields').classList.toggle('hidden', !document.getElementById('l-disb').checked);
+    }
+
+    function openLoanModal(id = null) {
+      openModal('modal-loan');
+      const loan = id ? appData.loans.find(l => l.id === id) : null;
+      document.getElementById('loan-modal-title').innerText = loan ? 'Editar Préstamo' : 'Nuevo Préstamo';
+      setVal('l-id', loan ? loan.id : '');
+      setVal('l-name', loan ? loan.name : '');
+      setVal('l-lender', loan ? loan.lender : '');
+      if (loan) {
+        // Se precarga el estado de HOY (saldo y próximo pago), no el del día en que se capturó
+        const s = getLoanSummary(loan, currentSystemDate);
+        setVal('l-balance', s.error ? loan.balance : s.balance);
+        setVal('l-first', s.error || !s.nextPayment ? loan.firstPaymentDate : s.nextPayment.fechaPago);
+        setVal('l-rate', pct(loan.annualRate));
+        setVal('l-payment', loan.monthlyPayment);
+        document.getElementById('l-iva').checked = loan.ivaOnInterest !== false;
+      } else {
+        const d = parseLocalDate(currentSystemDate);
+        setVal('l-balance', '');
+        setVal('l-first', formatDate(createSafeDate(d.getFullYear(), d.getMonth() + 1, d.getDate())));
+        setVal('l-rate', '');
+        setVal('l-payment', '');
+        document.getElementById('l-iva').checked = true;
+      }
+      document.getElementById('l-disb').checked = false;
+      setVal('l-disbAmount', '');
+      setVal('l-disbDate', currentSystemDate);
+      toggleDisbursement();
+      document.getElementById('l-disb-wrap').classList.toggle('hidden', !!loan);
+      updateLoanPreview();
+    }
+
+    function saveLoan() {
+      const { terms, error } = readLoanForm();
+      if (error) return alert(error);
+      const sched = getLoanSchedule({ ...terms, id: 'probe', paidHistory: [] });
+      if (sched.error) return alert(sched.message);
+
+      const id = getVal('l-id');
+      if (id) {
+        const loan = appData.loans.find(l => l.id === id);
+        updateLoanTerms(loan, terms, currentSystemDate);
+      } else {
+        let disbursement = null;
+        if (document.getElementById('l-disb').checked) {
+          const amount = parseFloat(getVal('l-disbAmount')) || terms.balance;
+          const date = getVal('l-disbDate');
+          if (!(amount > 0) || !date) return alert('Escribe el monto y la fecha del depósito, o desmarca la casilla.');
+          disbursement = { amount, date };
+        }
+        const loan = { id: newId('loan'), ...terms, paidHistory: [] };
+        appData.loans.push(loan);
+        if (disbursement) {
+          appData.directTransactions.push({ id: newId('tx'), type: 'extra_income', description: `Préstamo: ${terms.name}`, amount: disbursement.amount, date: disbursement.date, loanId: loan.id });
+        }
+      }
+      saveData();
+      closeModal('modal-loan');
+      refreshAll();
+    }
+
+    function deleteLoan(id) {
+      const loan = appData.loans.find(l => l.id === id);
+      if (!loan) return;
+      if (!confirm(`¿Borrar el préstamo "${loan.name}"?\n\nSus pagos pasados dejarán de descontarse de tu saldo de débito y sus pagos futuros desaparecerán del calendario. Si solo quieres corregir datos, edítalo en lugar de borrarlo.`)) return;
+      appData.loans = appData.loans.filter(l => l.id !== id);
+      openLoanDetails.delete(id);
+      saveData();
+      refreshAll();
+    }
+
+    // ---------- Abono extra ----------
+    function openLoanExtraModal(id) {
+      const loan = appData.loans.find(l => l.id === id);
+      if (!loan) return;
+      openModal('modal-loan-extra');
+      document.getElementById('x-title').innerText = `Abono extra · ${loan.name}`;
+      setVal('x-id', id);
+      setVal('x-date', currentSystemDate);
+      setVal('x-amount', '');
+      updateLoanExtraHint();
+    }
+
+    function updateLoanExtraHint() {
+      const loan = appData.loans.find(l => l.id === getVal('x-id'));
+      const date = getVal('x-date');
+      if (!loan || !date) return;
+      document.getElementById('x-hint').innerText = `Saldo pendiente al ${date}: $${money(loanBalanceOn(loan, date))}`;
+    }
+
+    function saveLoanExtra() {
+      const loan = appData.loans.find(l => l.id === getVal('x-id'));
+      const date = getVal('x-date');
+      const amount = parseFloat(getVal('x-amount'));
+      if (!loan || !date || !(amount > 0)) return alert('Elige la fecha y escribe un monto mayor a 0.');
+      const res = applyLoanExtraPayment(loan, date, amount);
+      if (!res.ok) return alert(res.error);
+      saveData();
+      closeModal('modal-loan-extra');
+      refreshAll();
+    }
+
+    // ---------- Detalle y simulador ----------
+    function toggleLoanDetail(id) {
+      if (openLoanDetails.has(id)) openLoanDetails.delete(id); else openLoanDetails.add(id);
+      renderLoansView();
+    }
+
+    function simulateLoanExtraMonthly(id) {
+      const loan = appData.loans.find(l => l.id === id);
+      const out = document.getElementById(`loan-sim-${id}`);
+      const extra = parseFloat(getVal(`loan-extra-${id}`));
+      const s = loan ? getLoanSummary(loan, currentSystemDate) : null;
+      if (!loan || !s || s.error || !s.nextPayment) return;
+      if (!(extra > 0)) { out.innerHTML = '<span class="text-slate-500">Escribe cuánto más pagarías cada mes.</span>'; return; }
+      const debt = { id, name: loan.name, totalBalance: s.balance, annualInterestRate: loan.annualRate, ivaOnInterest: loan.ivaOnInterest !== false, startDate: s.nextPayment.fechaPago, firstPaymentDate: s.nextPayment.fechaPago };
+      const cmp = compareDebtScenarios(debt, loan.monthlyPayment, extra);
+      if (cmp.error) { out.innerHTML = `<span class="text-rose-300">${esc(cmp.message)}</span>`; return; }
+      out.innerHTML = `Pagando <b class="text-white">$${money(loan.monthlyPayment + extra)}</b> al mes terminarías el <b class="text-emerald-300">${cmp.escenarioAcelerado.fechaFinal}</b>
+        (<b class="text-emerald-300">${cmp.beneficio.mesesAhorrados} ${cmp.beneficio.mesesAhorrados === 1 ? 'mes' : 'meses'} antes</b>) y ahorrarías <b class="text-emerald-300">$${money(cmp.beneficio.dineroInteresesAhorrados)}</b> en intereses.`;
+    }
+
+    function renderLoansView() {
+      const box = document.getElementById('loans-container');
+      if (!box) return;
+      const items = appData.loans.map(loan => ({ loan, s: getLoanSummary(loan, currentSystemDate) }));
+      const active = items.filter(i => !i.s.error && !i.s.paidOff);
+
+      const totalBalance = active.reduce((sum, i) => sum + i.s.balance, 0);
+      const totalInterest = active.reduce((sum, i) => sum + i.s.interestRemaining, 0);
+      const monthly = active.reduce((sum, i) => sum + i.loan.monthlyPayment, 0);
+      const nexts = active.filter(i => i.s.nextPayment).sort((a, b) => a.s.nextPayment.fechaPago.localeCompare(b.s.nextPayment.fechaPago));
+
+      document.getElementById('loans-total-balance').innerText = `$${money(totalBalance)}`;
+      document.getElementById('loans-interest-total').innerText = `Intereses por pagar: $${money(totalInterest)}`;
+      document.getElementById('loans-monthly-total').innerText = `$${money(monthly)}`;
+      document.getElementById('loans-count').innerText = `${active.length} ${active.length === 1 ? 'préstamo activo' : 'préstamos activos'}`;
+      document.getElementById('loans-next-payment').innerText = nexts.length ? nexts[0].s.nextPayment.fechaPago : '—';
+      document.getElementById('loans-next-sub').innerText = nexts.length ? `${nexts[0].loan.name} · $${money(nexts[0].s.nextPayment.pagoMensual)}` : 'Sin pagos pendientes';
+
+      box.innerHTML = items.map(({ loan, s }) => {
+        const head = `
+          <div class="flex justify-between items-start gap-3 flex-wrap">
+            <div>
+              <h3 class="font-bold text-lg text-white">${esc(loan.name)} ${s.paidOff ? '<span class="text-xs bg-emerald-900/50 text-emerald-300 px-2 py-0.5 rounded ml-1">Liquidado ✔</span>' : ''}</h3>
+              <p class="text-xs text-slate-400">${loan.lender ? esc(loan.lender) + ' · ' : ''}Tasa ${pct(loan.annualRate)}% anual${loan.ivaOnInterest !== false ? ' + IVA' : ''} · Mensualidad $${money(loan.monthlyPayment)}</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              ${s.error ? '' : `<button onclick="toggleLoanDetail('${loan.id}')" class="text-xs bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700">${openLoanDetails.has(loan.id) ? '▲ Ocultar tabla' : '📊 Tabla y simulador'}</button>`}
+              ${s.error || s.paidOff ? '' : `<button onclick="openLoanExtraModal('${loan.id}')" class="text-xs bg-emerald-950/50 text-emerald-300 px-2.5 py-1 rounded-lg border border-emerald-800">💸 Abono extra</button>`}
+              <button onclick="openLoanModal('${loan.id}')" class="text-xs bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700">✏️ Editar</button>
+              <button onclick="deleteLoan('${loan.id}')" class="text-xs bg-rose-950/50 text-rose-300 px-2.5 py-1 rounded-lg border border-rose-800">🗑️ Borrar</button>
+            </div>
+          </div>`;
+
+        if (s.error) {
+          return `<div class="bg-slate-900 p-5 rounded-2xl border border-rose-800 space-y-3">${head}<div class="text-sm text-rose-300">${esc(s.message)} Edita el préstamo para corregirlo.</div></div>`;
+        }
+
+        const stats = `
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div class="bg-slate-800/60 rounded-xl p-3"><div class="text-[11px] uppercase text-slate-400">Saldo pendiente</div><div class="text-lg font-bold ${s.paidOff ? 'text-emerald-400' : 'text-rose-400'}">$${money(s.balance)}</div></div>
+            <div class="bg-slate-800/60 rounded-xl p-3"><div class="text-[11px] uppercase text-slate-400">Próximo pago</div><div class="text-sm font-semibold text-white">${s.nextPayment ? `${s.nextPayment.fechaPago}<div class="text-xs text-slate-400 font-normal">$${money(s.nextPayment.pagoMensual)}</div>` : '—'}</div></div>
+            <div class="bg-slate-800/60 rounded-xl p-3"><div class="text-[11px] uppercase text-slate-400">Pagos restantes</div><div class="text-sm font-semibold text-white">${s.remainingPayments}${s.finalDate && !s.paidOff ? `<div class="text-xs text-slate-400 font-normal">Termina ${s.finalDate}</div>` : ''}</div></div>
+            <div class="bg-slate-800/60 rounded-xl p-3"><div class="text-[11px] uppercase text-slate-400">Intereses por pagar</div><div class="text-sm font-semibold text-white">$${money(s.interestRemaining)}</div></div>
+          </div>`;
+
+        let detail = '';
+        if (openLoanDetails.has(loan.id) && !s.paidOff) {
+          const rows = s.futureRows.map(r => `
+            <tr class="hover:bg-slate-800/50">
+              <td class="p-2 text-xs">${esc(r.fechaPago)}</td>
+              <td class="p-2 text-right text-xs">$${money(r.pagoMensual)}</td>
+              <td class="p-2 text-right text-xs text-rose-300">$${money(r.interesMasIva)}</td>
+              <td class="p-2 text-right text-xs text-emerald-300">$${money(r.abonoACapital)}</td>
+              <td class="p-2 text-right text-xs font-semibold">$${money(r.saldoRestante)}</td>
+            </tr>`).join('');
+          detail = `
+            <div class="space-y-3 pt-3 border-t border-slate-800">
+              <div class="bg-slate-800/40 rounded-xl p-3 space-y-2">
+                <div class="text-xs uppercase text-slate-400">¿Y si pago más cada mes?</div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <input type="number" step="0.01" id="loan-extra-${loan.id}" placeholder="Extra mensual ($)" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm w-44">
+                  <button onclick="simulateLoanExtraMonthly('${loan.id}')" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-2 rounded-xl">Simular</button>
+                </div>
+                <div id="loan-sim-${loan.id}" class="text-xs text-slate-300"></div>
+              </div>
+              <div class="overflow-x-auto max-h-80 overflow-y-auto">
+                <table class="w-full text-left text-slate-300">
+                  <thead class="bg-slate-800 text-xs uppercase text-slate-400 sticky top-0"><tr><th class="p-2">Fecha</th><th class="p-2 text-right">Pago</th><th class="p-2 text-right">Interés${loan.ivaOnInterest !== false ? '+IVA' : ''}</th><th class="p-2 text-right">Capital</th><th class="p-2 text-right">Saldo</th></tr></thead>
+                  <tbody class="divide-y divide-slate-800">${rows}</tbody>
+                </table>
+              </div>
+              <p class="text-[11px] text-slate-500">Estimación: interés del mes = saldo × tasa mensual${loan.ivaOnInterest !== false ? ' + IVA' : ''}. Si tu banco cobra distinto, edita el préstamo con el saldo real para recalibrar.</p>
+            </div>`;
+        }
+
+        return `<div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4">${head}${stats}${detail}</div>`;
+      }).join('') || `<div class="bg-slate-900 p-8 rounded-2xl border border-slate-800 text-center text-slate-500 text-sm">Aún no tienes préstamos registrados. Pulsa "+ Nuevo préstamo".</div>`;
+    }
+
+    // ==========================================
+    // DETALLE DE ESTADOS DE CUENTA
+    // ==========================================
+    function statementLine(label, amount, actions) {
+      const neg = amount < 0;
+      return `<div class="flex justify-between items-center gap-2 text-xs py-1">
+        <span class="text-slate-300">${label}</span>
+        <span class="flex items-center gap-2 whitespace-nowrap"><span class="${neg ? 'text-emerald-300' : 'text-slate-200'}">${neg ? '−' : ''}$${money(Math.abs(amount))}</span>${actions || ''}</span>
+      </div>`;
+    }
+
+    function statementItemActions(item) {
+      if (item.type === 'subscription') {
+        return `<button onclick="openSubModal('${item.sourceId}')" title="Editar la suscripción" class="text-[11px] bg-slate-700 px-1.5 py-0.5 rounded">✏️</button>
+                <button onclick="deleteSub('${item.sourceId}')" title="Borrar la suscripción completa" class="text-[11px] bg-rose-950/50 text-rose-300 px-1.5 py-0.5 rounded">🗑️</button>`;
+      }
+      return `<button onclick="openPurchaseModal('${item.sourceId}')" title="Editar la compra" class="text-[11px] bg-slate-700 px-1.5 py-0.5 rounded">✏️</button>
+              <button onclick="deletePurchase('${item.sourceId}')" title="Borra la compra completa, con todas sus mensualidades" class="text-[11px] bg-rose-950/50 text-rose-300 px-1.5 py-0.5 rounded">🗑️</button>`;
+    }
+
+    function renderStatementsView() {
+      const box = document.getElementById('statements-container');
+      if (!box) return;
+      if (appData.cards.length === 0) { box.innerHTML = '<div class="text-sm text-slate-500">Aún no hay tarjetas.</div>'; return; }
+
+      box.innerHTML = appData.cards.map(card => {
+        const sts = getCardStatements(appData.purchases, appData.subscriptions, card, appData.paymentsHistory, 12, currentSystemDate)
+          .filter(st => st.remainingBalance > 0 || st.paymentDueDate >= currentSystemDate)
+          .slice(0, 4);
+
+        const body = sts.map(st => {
+          const chip = st.status === 'PAGADO' ? 'bg-emerald-900/50 text-emerald-300'
+            : st.status.startsWith('PENDIENTE') ? 'bg-slate-700 text-slate-200' : 'bg-rose-900/50 text-rose-300';
+          const lines = [];
+          if (st.previousDebt > 0) lines.push(statementLine('↪️ Saldo anterior sin pagar', st.previousDebt));
+          if (st.interestAndTax > 0) lines.push(statementLine('💸 Intereses + IVA estimados (por saldo anterior)', st.interestAndTax));
+          st.items.forEach(it => lines.push(statementLine(`${it.type === 'subscription' ? '🔁' : '🛒'} ${esc(it.label)}`, it.amount, statementItemActions(it))));
+          if (st.amountPaid > 0) lines.push(statementLine('✅ Abonos registrados', -st.amountPaid));
+          return `
+            <div class="bg-slate-800/40 rounded-xl p-3 space-y-1">
+              <div class="flex justify-between items-center flex-wrap gap-2">
+                <div class="text-sm text-white">Pago <b>${esc(st.paymentDueDate)}</b> <span class="text-xs text-slate-400">· corte ${esc(st.cutoffDate)}</span></div>
+                <div class="flex items-center gap-2"><span class="px-2 py-0.5 rounded text-[11px] ${chip}">${esc(st.status)}</span><span class="text-sm font-bold text-white">Falta $${money(st.remainingBalance)}</span></div>
+              </div>
+              <div class="divide-y divide-slate-700/50">${lines.join('')}</div>
+            </div>`;
+        }).join('') || '<div class="text-xs text-slate-500">Sin estados de cuenta pendientes.</div>';
+
+        return `<div class="space-y-2"><h4 class="font-semibold text-white">${esc(card.name)}</h4>${body}</div>`;
+      }).join('');
+    }
+
+    // ==========================================
+    // SUSCRIPCIONES
+    // ==========================================
+    function renderSubscriptionsList() {
+      const tbody = document.getElementById('subs-tbody');
+      if (!tbody) return;
+      tbody.innerHTML = appData.subscriptions.map(s => {
+        const card = appData.cards.find(c => c.id === s.cardId);
+        return `
+        <tr class="hover:bg-slate-800/50">
+          <td class="p-3 font-medium text-white">${esc(s.description)}<span class="text-xs block ${card ? 'text-slate-400' : 'text-amber-300'}">${card ? esc(card.name) : '⚠️ Su tarjeta ya no existe'}</span></td>
+          <td class="p-3 text-xs">Día ${esc(s.chargeDay)} de cada mes</td>
+          <td class="p-3 text-right font-semibold">$${money(s.amount)}</td>
+          <td class="p-3 text-xs">desde ${esc(s.startDate)}${s.endDate ? ' hasta ' + esc(s.endDate) : ''}</td>
+          <td class="p-3 text-center space-x-1">
+            <button onclick="openSubModal('${s.id}')" class="text-xs bg-slate-800 px-2 py-1 rounded">✏️</button>
+            <button onclick="deleteSub('${s.id}')" class="text-xs bg-rose-950/50 text-rose-300 px-2 py-1 rounded">🗑️</button>
+          </td>
+        </tr>`;
+      }).join('') || `<tr><td colspan="5" class="p-4 text-center text-slate-500">No hay suscripciones.</td></tr>`;
+    }
+
+    function openSubModal(id = null) {
+      if (appData.cards.length === 0) return alert('Primero agrega una tarjeta.');
+      openModal('modal-sub');
+      const s = id ? appData.subscriptions.find(x => x.id === id) : null;
+      document.getElementById('sub-modal-title').innerText = s ? 'Editar Suscripción' : 'Nueva Suscripción';
+      setVal('s-id', s ? s.id : '');
+      setVal('s-cardId', s ? s.cardId : appData.cards[0].id);
+      setVal('s-desc', s ? s.description : '');
+      setVal('s-amount', s ? s.amount : '');
+      setVal('s-day', s ? s.chargeDay : '');
+      setVal('s-start', s ? s.startDate : currentSystemDate);
+      setVal('s-end', s && s.endDate ? s.endDate : '');
+    }
+
+    function saveSub() {
+      const cardId = getVal('s-cardId');
+      const description = getVal('s-desc');
+      const amount = parseFloat(getVal('s-amount'));
+      const chargeDay = parseInt(getVal('s-day'), 10);
+      const startDate = getVal('s-start');
+      const endDate = getVal('s-end');
+
+      if (!cardId || !description) return alert('Elige la tarjeta y escribe una descripción.');
+      if (!(amount > 0)) return alert('Escribe un monto mensual mayor a 0.');
+      if (!(chargeDay >= 1 && chargeDay <= 31)) return alert('El día de cobro debe estar entre 1 y 31.');
+      if (!startDate) return alert('Elige la fecha del primer cobro.');
+      if (endDate && endDate < startDate) return alert('La fecha final no puede ser anterior a la inicial.');
+
+      const id = getVal('s-id');
+      const data = { cardId, description, amount, chargeDay, startDate, endDate: endDate || null };
+      if (id) Object.assign(appData.subscriptions.find(x => x.id === id), data);
+      else appData.subscriptions.push({ id: newId('sub'), ...data });
+      saveData();
+      closeModal('modal-sub');
+      refreshAll();
+    }
+
+    function deleteSub(id) {
+      const s = appData.subscriptions.find(x => x.id === id);
+      if (!s || !confirm(`¿Borrar la suscripción "${s.description}"? Se quitan todos sus cobros, pasados y futuros.`)) return;
+      appData.subscriptions = appData.subscriptions.filter(x => x.id !== id);
+      saveData();
+      refreshAll();
+    }
+
+    // ==========================================
+    // ARRANQUE
+    // ==========================================
+    window.onload = function () {
+      document.getElementById('currentDateInput').value = currentSystemDate;
+      document.getElementById('pay-cardId').addEventListener('change', suggestPayment);
+      document.getElementById('income-form').addEventListener('input', updateIncomePreview);
+      document.getElementById('loan-form').addEventListener('input', updateLoanPreview);
+      // Pide al navegador que no borre estos datos por falta de espacio (puede ignorarlo)
+      try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+      refreshAll();
+    };
+  </script>
+</body>
+</html>
